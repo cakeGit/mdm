@@ -21,7 +21,15 @@ export const apiRequest = async (url: string, options: RequestInit = {}) => {
       localStorage.removeItem('token');
       window.location.reload();
     }
-    throw new Error(`API request failed: ${response.status}`);
+    const errorText = await response.text();
+    //If can be parsed as JSON, parse it and set error text to error field or message field
+    let errorMessage;
+    try {
+      const parsed = JSON.parse(errorText);
+      errorMessage = parsed.error || parsed.message || errorText;
+    } catch {
+    }
+    throw new Error(`API request failed: ${response.status} ${errorMessage}`);
   }
 
   return response;

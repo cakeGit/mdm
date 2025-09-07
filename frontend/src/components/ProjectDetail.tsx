@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiRequest } from '@/lib/api';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,16 +21,16 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   }, [projectId]);
 
   const fetchProject = async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}`);
-      const data = await response.json();
-      setProject(data);
-    } catch (error) {
-      console.error('Failed to fetch project:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const response = await apiRequest(`/api/projects/${projectId}`);
+        const data = await response.json();
+        setProject(data);
+      } catch (error) {
+        console.error('Failed to fetch project:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const toggleStage = (stageId: number) => {
     const newExpanded = new Set(expandedStages);
@@ -60,19 +61,19 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   };
 
   const updateTaskStatus = async (taskId: number, status: string) => {
-    try {
-      await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
-      fetchProject(); // Refresh the project data
-    } catch (error) {
-      console.error('Failed to update task:', error);
-    }
-  };
+      try {
+        await apiRequest(`/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status }),
+        });
+        fetchProject(); // Refresh the project data
+      } catch (error) {
+        console.error('Failed to update task:', error);
+      }
+    };
 
   const renderStage = (stage: Stage) => {
     const isExpanded = expandedStages.has(stage.id!);
@@ -192,11 +193,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             {project.description && (
               <p className="text-muted-foreground mt-1">{project.description}</p>
             )}
-            {project.minecraft_version && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Minecraft {project.minecraft_version}
-              </p>
-            )}
+            {/* Removed minecraft_version display as it should not exist */}
           </div>
           <div className="text-right">
             <span className={`px-3 py-1 rounded-full text-sm text-white bg-blue-500`}>

@@ -86,114 +86,131 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🍅 Pomodoro Timer
-          </h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 transition-all duration-200"
-          >
-            {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </div>
-      </CardHeader>
-      
-      {!isCollapsed && (
-        <CardContent className="p-4 pt-0">
-          <div className="space-y-4">
-            {!currentProjectId && (
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Project</label>
-                <select 
-                  value={selectedProjectId || ''} 
-                  onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full p-3 border-2 rounded-lg bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                  disabled={isRunning}
-                >
-                  <option value="">Select a project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {currentProjectId && (
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: projects.find(p => p.id === currentProjectId)?.color || '#6366f1' }}
-                  ></div>
-                  {projects.find(p => p.id === currentProjectId)?.name}
-                </div>
-              </div>
-            )}
-
-            <div className="text-center space-y-4">
-              <div className="relative">
-                <div className="text-5xl font-mono font-bold text-gray-800 drop-shadow-sm">
-                  {formatTime(timeLeft)}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg blur-xl -z-10"></div>
-              </div>
-              
-              <div className="flex gap-3 justify-center">
-                {!isRunning ? (
-                  <Button 
-                    onClick={startTimer} 
-                    disabled={!selectedProjectId}
-                    size="sm"
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+  <Card className={`fixed bottom-4 right-4 shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50 ${isCollapsed ? 'p-0 flex items-center justify-center' : 'w-80'}`}>
+      {isCollapsed ? (
+        <Button
+          variant="ghost"
+          aria-label="Expand Pomodoro Timer"
+          onClick={() => setIsCollapsed(false)}
+          className="px-3 py-2 rounded-lg flex flex-row items-center justify-center gap-2 bg-white min-h-[2.5rem] min-w-[2.5rem] w-auto h-auto hover:bg-gray-100 focus:bg-gray-200 transition-colors"
+        >
+          {isRunning && (
+            <span className="text-xs font-mono text-gray-500" style={{letterSpacing: '0.05em', minWidth: '2.5rem', textAlign: 'left'}}>
+              {formatTime(timeLeft)}
+            </span>
+          )}
+          <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" style={{fontFamily: 'inherit'}}>
+            🍅
+          </span>
+        </Button>
+      ) : (
+        <>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                🍅 Pomodoro Timer
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsCollapsed(true)}
+                className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 transition-all duration-200"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-4">
+              {!currentProjectId && (
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">Project</label>
+                  <select 
+                    value={selectedProjectId || ''} 
+                    onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full p-3 border-2 rounded-lg bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                    disabled={isRunning}
                   >
-                    <Play className="mr-2 h-4 w-4" />
-                    Start Focus
-                  </Button>
-                ) : (
+                    <option value="">Select a project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {currentProjectId && (
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: projects.find(p => p.id === currentProjectId)?.color || '#6366f1' }}
+                    ></div>
+                    {projects.find(p => p.id === currentProjectId)?.name}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-center space-y-4">
+                <div className="relative">
+                  <div className="text-5xl font-mono font-bold text-gray-800 drop-shadow-sm">
+                    {formatTime(timeLeft)}
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg blur-xl -z-10"></div>
+                </div>
+                
+                <div className="flex gap-3 justify-center">
+                  {!isRunning ? (
+                    <Button 
+                      onClick={startTimer} 
+                      disabled={!selectedProjectId}
+                      size="sm"
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Start Focus
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={pauseTimer} 
+                      size="sm" 
+                      variant="outline"
+                      className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                    >
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pause
+                    </Button>
+                  )}
+                  
                   <Button 
-                    onClick={pauseTimer} 
+                    onClick={resetTimer} 
                     size="sm" 
                     variant="outline"
-                    className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                    className="border-2 border-gray-400 text-gray-600 hover:bg-gray-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
                   >
-                    <Pause className="mr-2 h-4 w-4" />
-                    Pause
+                    <Square className="mr-2 h-4 w-4" />
+                    Reset
                   </Button>
-                )}
-                
-                <Button 
-                  onClick={resetTimer} 
-                  size="sm" 
-                  variant="outline"
-                  className="border-2 border-gray-400 text-gray-600 hover:bg-gray-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
-                >
-                  <Square className="mr-2 h-4 w-4" />
-                  Reset
-                </Button>
+                </div>
               </div>
-            </div>
 
-            {isRunning && (
-              <div className="animate-fadeIn">
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Session Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="What are you working on? 🚀"
-                  className="w-full p-3 border-2 rounded-lg text-sm bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
-                  rows={3}
-                />
-              </div>
-            )}
-          </div>
-        </CardContent>
+              {isRunning && (
+                <div className="animate-fadeIn">
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">Session Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="What are you working on? 🚀"
+                    className="w-full p-3 border-2 rounded-lg text-sm bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </>
       )}
     </Card>
   );
