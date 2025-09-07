@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { EditProjectModal } from '@/components/EditProjectModal';
 import { ProjectWithDetails, Stage, Task } from '@/types';
 import { apiRequest } from '@/lib/api';
 
@@ -19,6 +20,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [expandedStages, setExpandedStages] = useState<Set<number>>(new Set());
   const [showNewStageModal, setShowNewStageModal] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
   const [newStageName, setNewStageName] = useState('');
   const [newStageDescription, setNewStageDescription] = useState('');
@@ -272,10 +274,18 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               )}
             </div>
           </div>
-          <div className="text-right">
+          <div className="flex items-center gap-2">
             <span className={`px-3 py-1 rounded-full text-sm text-white bg-blue-500`}>
               {project.status}
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditProjectModal(true)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Project
+            </Button>
           </div>
         </div>
 
@@ -399,6 +409,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        isOpen={showEditProjectModal}
+        onClose={() => setShowEditProjectModal(false)}
+        onProjectUpdated={fetchProject}
+        project={project}
+      />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Edit, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { EditProjectModal } from '@/components/EditProjectModal';
 import { Project } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -15,6 +16,7 @@ interface ProjectDashboardProps {
 
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
   const [loading, setLoading] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   // Remove the automatic refresh as it can interfere with navigation
   // useEffect(() => {
@@ -30,6 +32,16 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
       case 'completed': return 'bg-gray-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const handleEditProject = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setEditingProject(project);
+  };
+
+  const handleEditComplete = () => {
+    setEditingProject(null);
+    onRefresh();
   };
 
   if (loading) {
@@ -99,9 +111,19 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                       {project.name}
                     </CardTitle>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusBadgeColor(project.status)} group-hover:scale-105 transition-transform duration-200`}>
-                    {project.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusBadgeColor(project.status)} group-hover:scale-105 transition-transform duration-200`}>
+                      {project.status}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      onClick={(e) => handleEditProject(e, project)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <CardDescription className="text-muted-foreground line-clamp-2">
                   {project.description || 'No description provided'}
@@ -130,6 +152,13 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
           ))}
         </div>
       )}
+
+      <EditProjectModal
+        isOpen={!!editingProject}
+        onClose={() => setEditingProject(null)}
+        onProjectUpdated={handleEditComplete}
+        project={editingProject}
+      />
     </div>
   );
 }
