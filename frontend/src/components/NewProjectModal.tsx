@@ -16,7 +16,7 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    minecraft_version: ''
+    color: '#6366f1' // Default color for the project
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,7 +31,7 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
       });
 
       if (response.ok) {
-        setFormData({ name: '', description: '', minecraft_version: '' });
+        setFormData({ name: '', description: '', color: '#6366f1' });
         onProjectCreated();
         onClose();
       }
@@ -45,55 +45,84 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="card-bubbly w-full max-w-md animate-fadeIn">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Create New Project</CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              ✨ Create New Project
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full h-8 w-8 p-0 hover:bg-gray-100 transition-all duration-200">
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Project Name *</Label>
+              <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Project Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="My Awesome Mod"
                 required
+                className="border-2 rounded-xl py-3 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</Label>
               <Input
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of your mod"
+                className="border-2 rounded-xl py-3 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="minecraft_version">Minecraft Version</Label>
-              <Input
-                id="minecraft_version"
-                value={formData.minecraft_version}
-                onChange={(e) => setFormData({ ...formData, minecraft_version: e.target.value })}
-                placeholder="1.20.1"
-              />
+              <Label htmlFor="color" className="text-sm font-semibold text-gray-700">Project Color</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="color"
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="w-16 h-12 rounded-xl border-2 border-gray-200 cursor-pointer shadow-sm hover:shadow-md transition-all duration-200"
+                />
+                <Input
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  placeholder="#6366f1"
+                  className="flex-1 border-2 rounded-xl py-3 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                />
+              </div>
             </div>
             
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose} 
+                className="button-bubbly flex-1 border-2 py-3 text-base font-medium"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !formData.name} className="flex-1">
-                {isSubmitting ? 'Creating...' : 'Create Project'}
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !formData.name} 
+                className="button-bubbly flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 text-base font-medium disabled:opacity-50 disabled:transform-none"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <span className="animate-spin mr-2">⚡</span>
+                    Creating...
+                  </span>
+                ) : (
+                  '🚀 Create Project'
+                )}
               </Button>
             </div>
           </form>

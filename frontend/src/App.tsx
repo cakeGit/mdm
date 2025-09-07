@@ -84,10 +84,13 @@ function AppContent() {
       )}
 
       {currentView === 'project' && selectedProjectId && (
-        <ProjectDetail
-          projectId={selectedProjectId}
-          onBack={handleBackToDashboard}
-        />
+        <>
+          <ProjectDetail
+            projectId={selectedProjectId}
+            onBack={handleBackToDashboard}
+          />
+          <PomodoroTimer projects={projects} currentProjectId={selectedProjectId} />
+        </>
       )}
 
       <NewProjectModal
@@ -95,8 +98,6 @@ function AppContent() {
         onClose={() => setShowNewProjectModal(false)}
         onProjectCreated={handleProjectCreated}
       />
-
-      <PomodoroTimer projects={projects} />
     </Layout>
   );
 }

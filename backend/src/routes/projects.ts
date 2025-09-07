@@ -35,7 +35,7 @@ router.get('/', authenticateToken, (req: any, res) => {
 
 // POST /api/projects - Create a new project
 router.post('/', authenticateToken, (req: any, res) => {
-  const { name, description, minecraft_version } = req.body;
+  const { name, description, color } = req.body;
   
   if (!name) {
     return res.status(400).json({ error: 'Project name is required' });
@@ -44,9 +44,9 @@ router.post('/', authenticateToken, (req: any, res) => {
   const db = getDatabase();
   
   db.run(`
-    INSERT INTO projects (user_id, name, description, minecraft_version, updated_at)
+    INSERT INTO projects (user_id, name, description, color, updated_at)
     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `, [req.user.userId, name, description, minecraft_version], function(err) {
+  `, [req.user.userId, name, description, color || '#6366f1'], function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -55,7 +55,7 @@ router.post('/', authenticateToken, (req: any, res) => {
       id: this.lastID,
       name,
       description,
-      minecraft_version,
+      color: color || '#6366f1',
       status: 'planning'
     });
   });
@@ -135,7 +135,7 @@ router.get('/:id', authenticateToken, (req: any, res) => {
 // PATCH /api/projects/:id - Update project
 router.patch('/:id', authenticateToken, (req: any, res) => {
   const projectId = parseInt(req.params.id);
-  const { status, name, description, minecraft_version } = req.body;
+  const { status, name, description, color } = req.body;
   
   const db = getDatabase();
   
@@ -154,9 +154,9 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
     updates.push('description = ?');
     values.push(description);
   }
-  if (minecraft_version !== undefined) {
-    updates.push('minecraft_version = ?');
-    values.push(minecraft_version);
+  if (color !== undefined) {
+    updates.push('color = ?');
+    values.push(color);
   }
   
   updates.push('updated_at = CURRENT_TIMESTAMP');

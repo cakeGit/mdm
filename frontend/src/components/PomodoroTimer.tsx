@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, Square } from 'lucide-react';
+import { Play, Pause, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Project } from '@/types';
 
 interface PomodoroTimerProps {
   projects: Project[];
+  currentProjectId?: number;
 }
 
-export function PomodoroTimer({ projects }: PomodoroTimerProps) {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps) {
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(currentProjectId || null);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Update selected project when currentProjectId changes
+  useEffect(() => {
+    if (currentProjectId) {
+      setSelectedProjectId(currentProjectId);
+    }
+  }, [currentProjectId]);
 
   useEffect(() => {
     let interval: number;
@@ -77,71 +86,115 @@ export function PomodoroTimer({ projects }: PomodoroTimerProps) {
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 shadow-lg">
-      <CardContent className="p-4">
-        <h3 className="font-semibold mb-3">Pomodoro Timer</h3>
-        
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Project</label>
-            <select 
-              value={selectedProjectId || ''} 
-              onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full p-2 border rounded"
-              disabled={isRunning}
-            >
-              <option value="">Select a project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="text-center">
-            <div className="text-4xl font-mono font-bold mb-2">
-              {formatTime(timeLeft)}
-            </div>
-            
-            <div className="flex gap-2 justify-center">
-              {!isRunning ? (
-                <Button 
-                  onClick={startTimer} 
-                  disabled={!selectedProjectId}
-                  size="sm"
-                >
-                  <Play className="mr-1 h-3 w-3" />
-                  Start
-                </Button>
-              ) : (
-                <Button onClick={pauseTimer} size="sm" variant="outline">
-                  <Pause className="mr-1 h-3 w-3" />
-                  Pause
-                </Button>
-              )}
-              
-              <Button onClick={resetTimer} size="sm" variant="outline">
-                <Square className="mr-1 h-3 w-3" />
-                Reset
-              </Button>
-            </div>
-          </div>
-
-          {isRunning && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Session Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="What are you working on?"
-                className="w-full p-2 border rounded text-sm"
-                rows={2}
-              />
-            </div>
-          )}
+    <Card className="fixed bottom-4 right-4 w-80 shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            🍅 Pomodoro Timer
+          </h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 transition-all duration-200"
+          >
+            {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </div>
-      </CardContent>
+      </CardHeader>
+      
+      {!isCollapsed && (
+        <CardContent className="p-4 pt-0">
+          <div className="space-y-4">
+            {!currentProjectId && (
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Project</label>
+                <select 
+                  value={selectedProjectId || ''} 
+                  onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full p-3 border-2 rounded-lg bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                  disabled={isRunning}
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {currentProjectId && (
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: projects.find(p => p.id === currentProjectId)?.color || '#6366f1' }}
+                  ></div>
+                  {projects.find(p => p.id === currentProjectId)?.name}
+                </div>
+              </div>
+            )}
+
+            <div className="text-center space-y-4">
+              <div className="relative">
+                <div className="text-5xl font-mono font-bold text-gray-800 drop-shadow-sm">
+                  {formatTime(timeLeft)}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg blur-xl -z-10"></div>
+              </div>
+              
+              <div className="flex gap-3 justify-center">
+                {!isRunning ? (
+                  <Button 
+                    onClick={startTimer} 
+                    disabled={!selectedProjectId}
+                    size="sm"
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Start Focus
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={pauseTimer} 
+                    size="sm" 
+                    variant="outline"
+                    className="border-2 border-orange-400 text-orange-600 hover:bg-orange-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                  >
+                    <Pause className="mr-2 h-4 w-4" />
+                    Pause
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={resetTimer} 
+                  size="sm" 
+                  variant="outline"
+                  className="border-2 border-gray-400 text-gray-600 hover:bg-gray-50 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6"
+                >
+                  <Square className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            {isRunning && (
+              <div className="animate-fadeIn">
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Session Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="What are you working on? 🚀"
+                  className="w-full p-3 border-2 rounded-lg text-sm bg-white shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }

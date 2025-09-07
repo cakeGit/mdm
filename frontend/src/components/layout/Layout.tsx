@@ -13,11 +13,13 @@ export function Layout({ children }: LayoutProps) {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 overflow-auto">
-          {children}
+        <main className="flex-1 overflow-auto flex flex-col">
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
         </main>
       </div>
-      <Footer />
     </div>
   );
 }

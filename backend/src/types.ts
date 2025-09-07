@@ -2,7 +2,7 @@ export interface Project {
   id?: number;
   name: string;
   description?: string;
-  minecraft_version?: string;
+  color?: string;
   status: 'planning' | 'active' | 'on-hold' | 'completed';
   created_at?: string;
   updated_at?: string;

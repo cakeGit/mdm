@@ -14,7 +14,7 @@ CREATE TABLE projects (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
-    minecraft_version TEXT,
+    color TEXT DEFAULT '#6366f1',
     status TEXT DEFAULT 'planning', -- 'planning', 'active', 'on-hold', 'completed'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
