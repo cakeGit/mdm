@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { initDatabase } from './database';
+import authRouter from './routes/auth';
 import projectsRouter from './routes/projects';
 import stagesRouter from './routes/stages';
 import tasksRouter from './routes/tasks';
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/stages', stagesRouter);
 app.use('/api/tasks', tasksRouter);

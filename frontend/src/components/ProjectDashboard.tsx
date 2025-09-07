@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Project } from '@/types';
+import { apiRequest } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ProjectDashboardProps {
@@ -21,7 +22,7 @@ export function ProjectDashboard({ onProjectSelect, onNewProject }: ProjectDashb
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
+      const response = await apiRequest('/api/projects');
       const data = await response.json();
       setProjects(data);
     } catch (error) {
@@ -46,13 +47,13 @@ export function ProjectDashboard({ onProjectSelect, onNewProject }: ProjectDashb
   }
 
   return (
-    <div className="p-8">
+    <div className="p-6 md:p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Project Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground">Project Dashboard</h1>
           <p className="text-muted-foreground">Manage your Minecraft modding projects</p>
         </div>
-        <Button onClick={onNewProject}>
+        <Button onClick={onNewProject} className="bg-primary hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />
           New Project
         </Button>

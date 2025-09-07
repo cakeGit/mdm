@@ -1,11 +1,12 @@
 import express from 'express';
 import { getDatabase } from '../database';
 import { Project, ProjectWithDetails, Stage, Task } from '../types';
+import { authenticateToken } from './auth';
 
 const router = express.Router();
 
 // GET /api/projects - Fetch all projects
-router.get('/', (req, res) => {
+router.get('/', authenticateToken, (req: any, res) => {
   const db = getDatabase();
   
   db.all(`
@@ -15,9 +16,10 @@ router.get('/', (req, res) => {
     FROM projects p
     LEFT JOIN stages s ON p.id = s.project_id
     LEFT JOIN tasks t ON s.id = t.stage_id
+    WHERE p.user_id = ?
     GROUP BY p.id
     ORDER BY p.updated_at DESC
-  `, [], (err, rows: any[]) => {
+  `, [req.user.userId], (err, rows: any[]) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -32,7 +34,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/projects - Create a new project
-router.post('/', (req, res) => {
+router.post('/', authenticateToken, (req: any, res) => {
   const { name, description, minecraft_version } = req.body;
   
   if (!name) {
@@ -42,9 +44,9 @@ router.post('/', (req, res) => {
   const db = getDatabase();
   
   db.run(`
-    INSERT INTO projects (name, description, minecraft_version, updated_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-  `, [name, description, minecraft_version], function(err) {
+    INSERT INTO projects (user_id, name, description, minecraft_version, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `, [req.user.userId, name, description, minecraft_version], function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -60,12 +62,12 @@ router.post('/', (req, res) => {
 });
 
 // GET /api/projects/:id - Get project with nested stages/tasks
-router.get('/:id', (req, res) => {
+router.get('/:id', authenticateToken, (req: any, res) => {
   const projectId = parseInt(req.params.id);
   const db = getDatabase();
   
   // Get project details
-  db.get('SELECT * FROM projects WHERE id = ?', [projectId], (err, project: Project) => {
+  db.get('SELECT * FROM projects WHERE id = ? AND user_id = ?', [projectId, req.user.userId], (err, project: Project) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -131,7 +133,7 @@ router.get('/:id', (req, res) => {
 });
 
 // PATCH /api/projects/:id - Update project
-router.patch('/:id', (req, res) => {
+router.patch('/:id', authenticateToken, (req: any, res) => {
   const projectId = parseInt(req.params.id);
   const { status, name, description, minecraft_version } = req.body;
   
@@ -159,8 +161,9 @@ router.patch('/:id', (req, res) => {
   
   updates.push('updated_at = CURRENT_TIMESTAMP');
   values.push(projectId);
+  values.push(req.user.userId);
   
-  db.run(`UPDATE projects SET ${updates.join(', ')} WHERE id = ?`, values, function(err) {
+  db.run(`UPDATE projects SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values, function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -174,7 +177,7 @@ router.patch('/:id', (req, res) => {
 });
 
 // POST /api/projects/:id/stages - Add a stage to a project
-router.post('/:id/stages', (req, res) => {
+router.post('/:id/stages', authenticateToken, (req: any, res) => {
   const projectId = parseInt(req.params.id);
   const { name, description, parent_stage_id } = req.body;
   
@@ -184,22 +187,33 @@ router.post('/:id/stages', (req, res) => {
   
   const db = getDatabase();
   
-  db.run(`
-    INSERT INTO stages (project_id, parent_stage_id, name, description, sort_order)
-    VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM stages WHERE project_id = ?))
-  `, [projectId, parent_stage_id || null, name, description, projectId], function(err) {
+  // First verify the project belongs to the user
+  db.get('SELECT id FROM projects WHERE id = ? AND user_id = ?', [projectId, req.user.userId], (err, project) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     
-    res.status(201).json({
-      id: this.lastID,
-      project_id: projectId,
-      parent_stage_id: parent_stage_id || null,
-      name,
-      description,
-      sort_order: 0,
-      is_completed: false
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    db.run(`
+      INSERT INTO stages (project_id, parent_stage_id, name, description, sort_order)
+      VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM stages WHERE project_id = ?))
+    `, [projectId, parent_stage_id || null, name, description, projectId], function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      
+      res.status(201).json({
+        id: this.lastID,
+        project_id: projectId,
+        parent_stage_id: parent_stage_id || null,
+        name,
+        description,
+        sort_order: 0,
+        is_completed: false
+      });
     });
   });
 });

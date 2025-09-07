@@ -1,25 +1,34 @@
 import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginForm } from './components/auth/LoginForm';
+import { RegisterForm } from './components/auth/RegisterForm';
+import { Layout } from './components/layout/Layout';
 import { ProjectDashboard } from './components/ProjectDashboard';
 import { ProjectDetail } from './components/ProjectDetail';
 import { NewProjectModal } from './components/NewProjectModal';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { Project } from './types';
+import { apiRequest } from './lib/api';
 
 type View = 'dashboard' | 'project';
 
-function App() {
+function AppContent() {
+  const { user, isLoading } = useAuth();
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (user) {
+      fetchProjects();
+    }
+  }, [user]);
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
+      const response = await apiRequest('/api/projects');
       const data = await response.json();
       setProjects(data);
     } catch (error) {
@@ -45,8 +54,28 @@ function App() {
     fetchProjects();
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        {authMode === 'login' ? (
+          <LoginForm onToggleMode={() => setAuthMode('register')} />
+        ) : (
+          <RegisterForm onToggleMode={() => setAuthMode('login')} />
+        )}
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <Layout>
       {currentView === 'dashboard' && (
         <ProjectDashboard
           onProjectSelect={handleProjectSelect}
@@ -68,7 +97,15 @@ function App() {
       />
 
       <PomodoroTimer projects={projects} />
-    </div>
+    </Layout>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
