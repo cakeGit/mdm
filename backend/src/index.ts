@@ -7,6 +7,7 @@ import projectsRouter from './routes/projects';
 import stagesRouter from './routes/stages';
 import tasksRouter from './routes/tasks';
 import sessionsRouter from './routes/sessions';
+import statsRouter from './routes/stats';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,6 +22,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/stages', stagesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/sessions', sessionsRouter);
+app.use('/api/stats', statsRouter);
 
 // Serve static files in production
 const frontendPath = path.join(__dirname, '../../frontend/dist');

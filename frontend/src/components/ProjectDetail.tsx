@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { apiRequest } from '@/lib/api';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ProjectWithDetails, Stage } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ProjectWithDetails, Stage, Task } from '@/types';
+import { apiRequest } from '@/lib/api';
 
 interface ProjectDetailProps {
   projectId: number;
@@ -15,22 +17,29 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [project, setProject] = useState<ProjectWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedStages, setExpandedStages] = useState<Set<number>>(new Set());
+  const [showNewStageModal, setShowNewStageModal] = useState(false);
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
+  const [newStageName, setNewStageName] = useState('');
+  const [newStageDescription, setNewStageDescription] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
 
   useEffect(() => {
     fetchProject();
   }, [projectId]);
 
   const fetchProject = async () => {
-      try {
-        const response = await apiRequest(`/api/projects/${projectId}`);
-        const data = await response.json();
-        setProject(data);
-      } catch (error) {
-        console.error('Failed to fetch project:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const response = await apiRequest(`/api/projects/${projectId}`);
+      const data = await response.json();
+      setProject(data);
+    } catch (error) {
+      console.error('Failed to fetch project:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleStage = (stageId: number) => {
     const newExpanded = new Set(expandedStages);
@@ -40,6 +49,54 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       newExpanded.add(stageId);
     }
     setExpandedStages(newExpanded);
+  };
+
+  const handleAddStage = async () => {
+    if (!newStageName.trim()) return;
+    
+    try {
+      await apiRequest('/api/stages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          name: newStageName,
+          description: newStageDescription
+        })
+      });
+      
+      setNewStageName('');
+      setNewStageDescription('');
+      setShowNewStageModal(false);
+      fetchProject(); // Refresh project data
+    } catch (error) {
+      console.error('Failed to add stage:', error);
+    }
+  };
+
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim() || !selectedStageId) return;
+    
+    try {
+      await apiRequest('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stage_id: selectedStageId,
+          title: newTaskTitle,
+          description: newTaskDescription,
+          priority: 2 // Default to medium priority
+        })
+      });
+      
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setShowNewTaskModal(false);
+      setSelectedStageId(null);
+      fetchProject(); // Refresh project data
+    } catch (error) {
+      console.error('Failed to add task:', error);
+    }
   };
 
   const getTaskStatusColor = (status: string) => {
@@ -61,19 +118,19 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   };
 
   const updateTaskStatus = async (taskId: number, status: string) => {
-      try {
-        await apiRequest(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status }),
-        });
-        fetchProject(); // Refresh the project data
-      } catch (error) {
-        console.error('Failed to update task:', error);
-      }
-    };
+    try {
+      await apiRequest(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      fetchProject(); // Refresh the project data
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  };
 
   const renderStage = (stage: Stage) => {
     const isExpanded = expandedStages.has(stage.id!);
@@ -81,18 +138,18 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     const totalTasks = stage.tasks?.length || 0;
 
     return (
-      <div key={stage.id} className="border rounded-lg p-4">
+      <div key={stage.id} className="border rounded-lg p-4 bg-white shadow-sm">
         <div 
-          className="flex justify-between items-center cursor-pointer"
+          className="flex justify-between items-center cursor-pointer hover:bg-gray-50 rounded p-2"
           onClick={() => toggleStage(stage.id!)}
         >
           <div>
-            <h3 className="font-semibold">{stage.name}</h3>
+            <h3 className="font-semibold text-lg">{stage.name}</h3>
             {stage.description && (
               <p className="text-sm text-muted-foreground">{stage.description}</p>
             )}
             {totalTasks > 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 {completedTasks}/{totalTasks} tasks completed
               </p>
             )}
@@ -130,7 +187,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            onClick={() => updateTaskStatus(task.id!, 'completed')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTaskStatus(task.id!, 'completed');
+                            }}
                           >
                             ✓
                           </Button>
@@ -139,7 +199,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            onClick={() => updateTaskStatus(task.id!, 'todo')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTaskStatus(task.id!, 'todo');
+                            }}
                           >
                             ↺
                           </Button>
@@ -153,7 +216,16 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <p className="text-sm text-muted-foreground">No tasks yet</p>
             )}
             
-            <Button size="sm" variant="outline" className="w-full">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedStageId(stage.id!);
+                setShowNewTaskModal(true);
+              }}
+            >
               <Plus className="mr-2 h-3 w-3" />
               Add Task
             </Button>
@@ -188,12 +260,17 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
 
       <div className="mb-8">
         <div className="flex justify-between items-start mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-            {project.description && (
-              <p className="text-muted-foreground mt-1">{project.description}</p>
-            )}
-            {/* Removed minecraft_version display as it should not exist */}
+          <div className="flex items-center gap-4">
+            <div
+              className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+              style={{ backgroundColor: project.color || '#6366f1' }}
+            />
+            <div>
+              <h1 className="text-3xl font-bold">{project.name}</h1>
+              {project.description && (
+                <p className="text-muted-foreground mt-1">{project.description}</p>
+              )}
+            </div>
           </div>
           <div className="text-right">
             <span className={`px-3 py-1 rounded-full text-sm text-white bg-blue-500`}>
@@ -217,7 +294,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Project Stages</h2>
-            <Button>
+            <Button onClick={() => setShowNewStageModal(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Stage
             </Button>
@@ -231,7 +308,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 <CardContent className="text-center p-8">
                   <h3 className="font-semibold mb-2">No stages yet</h3>
                   <p className="text-muted-foreground mb-4">Create your first stage to organize your mod development.</p>
-                  <Button>
+                  <Button onClick={() => setShowNewStageModal(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create First Stage
                   </Button>
@@ -252,6 +329,76 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           </Card>
         </div>
       </div>
+
+      {/* New Stage Modal */}
+      <Dialog open={showNewStageModal} onOpenChange={setShowNewStageModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Stage</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Stage Name</label>
+              <Input
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                placeholder="Enter stage name..."
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Input
+                value={newStageDescription}
+                onChange={(e) => setNewStageDescription(e.target.value)}
+                placeholder="Enter stage description..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewStageModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddStage} disabled={!newStageName.trim()}>
+                Add Stage
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Task Modal */}
+      <Dialog open={showNewTaskModal} onOpenChange={setShowNewTaskModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Task Title</label>
+              <Input
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="Enter task title..."
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Input
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                placeholder="Enter task description..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewTaskModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()}>
+                Add Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

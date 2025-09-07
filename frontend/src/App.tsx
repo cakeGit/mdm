@@ -5,12 +5,14 @@ import { RegisterForm } from './components/auth/RegisterForm';
 import { Layout } from './components/layout/Layout';
 import { ProjectDashboard } from './components/ProjectDashboard';
 import { ProjectDetail } from './components/ProjectDetail';
+import { ProgressView } from './components/Progress';
+import { SessionsView } from './components/Sessions';
 import { NewProjectModal } from './components/NewProjectModal';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { Project } from './types';
 import { apiRequest } from './lib/api';
 
-type View = 'dashboard' | 'project';
+type View = 'dashboard' | 'projects' | 'progress' | 'sessions' | 'project';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -36,6 +38,13 @@ function AppContent() {
     }
   };
 
+  const handleViewChange = (view: string) => {
+    setCurrentView(view as View);
+    if (view !== 'project') {
+      setSelectedProjectId(null);
+    }
+  };
+
   const handleProjectSelect = (projectId: number) => {
     setSelectedProjectId(projectId);
     setCurrentView('project');
@@ -51,7 +60,8 @@ function AppContent() {
   };
 
   const handleProjectCreated = () => {
-    fetchProjects();
+    fetchProjects(); // This should refresh the projects list
+    setShowNewProjectModal(false);
   };
 
   if (isLoading) {
@@ -74,25 +84,56 @@ function AppContent() {
     );
   }
 
-  return (
-    <Layout>
-      {currentView === 'dashboard' && (
-        <ProjectDashboard
-          onProjectSelect={handleProjectSelect}
-          onNewProject={handleNewProject}
-        />
-      )}
-
-      {currentView === 'project' && selectedProjectId && (
-        <>
-          <ProjectDetail
-            projectId={selectedProjectId}
-            onBack={handleBackToDashboard}
+  const renderContent = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return (
+          <ProjectDashboard
+            projects={projects}
+            onProjectSelect={handleProjectSelect}
+            onNewProject={handleNewProject}
+            onRefresh={fetchProjects}
           />
-          <PomodoroTimer projects={projects} currentProjectId={selectedProjectId} />
-        </>
-      )}
+        );
+      case 'projects':
+        return (
+          <ProjectDashboard
+            projects={projects}
+            onProjectSelect={handleProjectSelect}
+            onNewProject={handleNewProject}
+            onRefresh={fetchProjects}
+          />
+        );
+      case 'progress':
+        return <ProgressView />;
+      case 'sessions':
+        return <SessionsView />;
+      case 'project':
+        return selectedProjectId ? (
+          <>
+            <ProjectDetail
+              projectId={selectedProjectId}
+              onBack={handleBackToDashboard}
+            />
+            <PomodoroTimer projects={projects} currentProjectId={selectedProjectId} />
+          </>
+        ) : null;
+      default:
+        return (
+          <ProjectDashboard
+            projects={projects}
+            onProjectSelect={handleProjectSelect}
+            onNewProject={handleNewProject}
+            onRefresh={fetchProjects}
+          />
+        );
+    }
+  };
 
+  return (
+    <Layout activeView={currentView} onViewChange={handleViewChange}>
+      {renderContent()}
+      
       <NewProjectModal
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}

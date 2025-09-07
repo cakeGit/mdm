@@ -5,13 +5,13 @@ import { authenticateToken } from './auth';
 
 const router = express.Router();
 
-// GET /api/sessions - Get sessions (optional ?date=YYYY-MM-DD)
+// GET /api/sessions - Get sessions with filtering
 router.get('/', authenticateToken, (req: any, res) => {
-  const date = req.query.date as string;
+  const filter = req.query.filter as string;
   const db = getDatabase();
   
   let query = `
-    SELECT ws.*, p.name as project_name
+    SELECT ws.*, p.name as project_name, p.color as project_color
     FROM work_sessions ws
     JOIN projects p ON ws.project_id = p.id
     WHERE p.user_id = ?
@@ -19,9 +19,19 @@ router.get('/', authenticateToken, (req: any, res) => {
   
   const params: any[] = [req.user.userId];
   
-  if (date) {
-    query += ` AND DATE(ws.started_at) = ?`;
-    params.push(date);
+  // Add date filtering based on filter parameter
+  if (filter && filter !== 'all') {
+    switch (filter) {
+      case 'today':
+        query += ` AND DATE(ws.started_at) = DATE('now')`;
+        break;
+      case 'week':
+        query += ` AND DATE(ws.started_at) >= DATE('now', '-7 days')`;
+        break;
+      case 'month':
+        query += ` AND DATE(ws.started_at) >= DATE('now', '-30 days')`;
+        break;
+    }
   }
   
   query += ` ORDER BY ws.started_at DESC`;

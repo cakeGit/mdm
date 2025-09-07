@@ -42,13 +42,12 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Header content moved to sidebar */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center space-x-2 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">MDM</span>
+        <div className="flex items-center justify-center mb-4">
+          <div className="bg-gray-100 px-4 py-2 rounded-lg">
+            <span className="text-gray-600 font-mono text-lg tracking-widest">m d m</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground">ModDevManager</h1>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground text-center">
           Welcome, {user?.username}
         </div>
       </div>
