@@ -1,5 +1,7 @@
-import { Home, FolderOpen, BarChart3, Timer } from 'lucide-react';
+import { Home, FolderOpen, BarChart3, Timer, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   activeView?: string;
@@ -7,6 +9,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+  const { user, logout } = useAuth();
+  
   const menuItems = [
     {
       id: 'dashboard',
@@ -35,8 +39,22 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-64 bg-card border-r border-border">
-      <nav className="p-4 space-y-2">
+    <aside className="w-64 bg-card border-r border-border flex flex-col">
+      {/* Header content moved to sidebar */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center space-x-2 mb-4">
+          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">MDM</span>
+          </div>
+          <h1 className="text-xl font-bold text-foreground">ModDevManager</h1>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Welcome, {user?.username}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -59,6 +77,19 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Logout button at bottom */}
+      <div className="p-4 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={logout}
+          className="w-full flex items-center justify-center space-x-2"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </Button>
+      </div>
     </aside>
   );
 }
