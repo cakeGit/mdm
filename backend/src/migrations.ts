@@ -58,12 +58,28 @@ export function getMigrations(): Migration[] {
 export function getExecutedMigrations(): Promise<number[]> {
   return new Promise((resolve, reject) => {
     const db = getDatabase();
-    db.all('SELECT id FROM schema_migrations ORDER BY id', (err, rows: any[]) => {
+    
+    // First check if the table exists
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'", (err, row) => {
       if (err) {
         reject(err);
-      } else {
-        resolve(rows.map(row => row.id));
+        return;
       }
+      
+      // If table doesn't exist, return empty array
+      if (!row) {
+        resolve([]);
+        return;
+      }
+      
+      // Table exists, fetch migrations
+      db.all('SELECT id FROM schema_migrations ORDER BY id', (err, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows.map(row => row.id));
+        }
+      });
     });
   });
 }
