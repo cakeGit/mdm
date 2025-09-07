@@ -9,6 +9,7 @@ export interface Project {
   total_tasks?: number;
   completed_tasks?: number;
   progress?: number;
+  suggested_task?: Task;
 }
 
 export interface Stage {

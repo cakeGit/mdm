@@ -143,6 +143,31 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                     }}
                   />
                 </div>
+                
+                {/* Suggested Next Task */}
+                {project.suggested_task && (
+                  <div className="space-y-2 border-t pt-3">
+                    <div className="text-xs font-medium text-muted-foreground">Suggested Next Task</div>
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+                      <div className="text-sm font-medium text-blue-900 line-clamp-1">
+                        {project.suggested_task.title}
+                      </div>
+                      <div className="text-xs text-blue-700 opacity-80 mt-1">
+                        Priority: {project.suggested_task.priority === 1 ? 'High' : project.suggested_task.priority === 2 ? 'Medium' : 'Low'}
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onProjectSelect(project.id);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-2 hover:underline"
+                      >
+                        🚀 Start Working
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>Last updated</span>
                   <span>{formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}</span>

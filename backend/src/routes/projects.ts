@@ -24,12 +24,44 @@ router.get('/', authenticateToken, (req: any, res) => {
       return res.status(500).json({ error: err.message });
     }
     
+    // For each project, get the suggested next task
     const projects = rows.map(row => ({
       ...row,
       progress: row.total_tasks > 0 ? (row.completed_tasks / row.total_tasks) * 100 : 0
     }));
     
-    res.json(projects);
+    // Get suggested tasks for all projects
+    const projectIds = projects.map(p => p.id).join(',');
+    if (projectIds) {
+      const suggestedTaskQuery = `
+        SELECT t.*, s.project_id
+        FROM tasks t
+        JOIN stages s ON t.stage_id = s.id
+        WHERE s.project_id IN (${projectIds}) 
+          AND t.status != 'completed'
+        ORDER BY s.project_id, t.priority ASC, t.created_at ASC
+      `;
+      
+      db.all(suggestedTaskQuery, [], (err, tasks: any[]) => {
+        if (err) {
+          console.error('Error fetching suggested tasks:', err);
+          return res.json(projects);
+        }
+        
+        // Add suggested task to each project (first non-completed task by priority)
+        const projectsWithSuggestions = projects.map(project => {
+          const suggestedTask = tasks.find(task => task.project_id === project.id);
+          return {
+            ...project,
+            suggested_task: suggestedTask || null
+          };
+        });
+        
+        res.json(projectsWithSuggestions);
+      });
+    } else {
+      res.json(projects);
+    }
   });
 });
 
