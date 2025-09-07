@@ -16,10 +16,11 @@ interface ProjectDashboardProps {
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Trigger refresh when component mounts to ensure we have latest data
-    onRefresh();
-  }, []);
+  // Remove the automatic refresh as it can interfere with navigation
+  // useEffect(() => {
+  //   // Trigger refresh when component mounts to ensure we have latest data
+  //   onRefresh();
+  // }, [onRefresh]);
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {

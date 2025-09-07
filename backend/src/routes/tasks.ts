@@ -76,4 +76,48 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
   });
 });
 
+// POST /api/tasks - Create a new task
+router.post('/', authenticateToken, (req: any, res) => {
+  const { stage_id, title, description, priority = 2 } = req.body;
+  
+  if (!stage_id || !title) {
+    return res.status(400).json({ error: 'Stage ID and task title are required' });
+  }
+  
+  const db = getDatabase();
+  
+  // First verify the stage belongs to a project owned by the user
+  db.get(`
+    SELECT s.id FROM stages s
+    JOIN projects p ON s.project_id = p.id
+    WHERE s.id = ? AND p.user_id = ?
+  `, [stage_id, req.user.userId], (err, stage) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (!stage) {
+      return res.status(404).json({ error: 'Stage not found' });
+    }
+    
+    db.run(`
+      INSERT INTO tasks (stage_id, title, description, priority)
+      VALUES (?, ?, ?, ?)
+    `, [stage_id, title, description, priority], function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      
+      res.status(201).json({
+        id: this.lastID,
+        stage_id,
+        title,
+        description,
+        status: 'todo',
+        priority
+      });
+    });
+  });
+});
+
 export default router;

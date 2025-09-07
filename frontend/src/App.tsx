@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
@@ -28,7 +28,7 @@ function AppContent() {
     }
   }, [user]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await apiRequest('/api/projects');
       const data = await response.json();
@@ -36,7 +36,7 @@ function AppContent() {
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     }
-  };
+  }, []);
 
   const handleViewChange = (view: string) => {
     setCurrentView(view as View);
