@@ -89,8 +89,8 @@ describe('NewProjectModal', () => {
     await user.type(screen.getByLabelText(/project name/i), 'Test Project');
     await user.type(screen.getByLabelText(/description/i), 'Test description');
     
-    // Change color
-    const colorInput = screen.getByDisplayValue('#6366f1');
+    // Change color using the color hex input (the text input with placeholder)
+    const colorInput = screen.getByPlaceholderText('#6366f1');
     await user.clear(colorInput);
     await user.type(colorInput, '#10b981');
     

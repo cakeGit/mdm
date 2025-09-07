@@ -2,11 +2,16 @@ import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-const TEST_DB_PATH = ':memory:'; // Use in-memory database for tests
+let testDb: sqlite3.Database | null = null;
 
 export const initTestDatabase = (): Promise<sqlite3.Database> => {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(TEST_DB_PATH, (err) => {
+    // Close existing database if any
+    if (testDb) {
+      testDb.close();
+    }
+    
+    testDb = new sqlite3.Database(':memory:', (err) => {
       if (err) {
         reject(err);
         return;
@@ -16,18 +21,21 @@ export const initTestDatabase = (): Promise<sqlite3.Database> => {
       const schemaPath = path.join(__dirname, '..', 'schema.sql');
       const schema = fs.readFileSync(schemaPath, 'utf8');
       
-      db.exec(schema, (err) => {
+      testDb!.exec(schema, (err) => {
         if (err) {
           reject(err);
           return;
         }
         
-        resolve(db);
+        resolve(testDb!);
       });
     });
   });
 };
 
 export const getTestDatabase = (): sqlite3.Database => {
-  return new sqlite3.Database(TEST_DB_PATH);
+  if (!testDb) {
+    throw new Error('Test database not initialized. Call initTestDatabase() first.');
+  }
+  return testDb;
 };
