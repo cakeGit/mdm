@@ -104,28 +104,96 @@ router.get('/progress', authenticateToken, (req: any, res) => {
                   return res.status(500).json({ error: err.message });
                 }
 
-                // Combine all statistics
-                const progressData = {
-                  totalProjects: projectStats.total_projects || 0,
-                  activeProjects: projectStats.active_projects || 0,
-                  completedTasks: taskStats.completed_tasks || 0,
-                  totalTasks: taskStats.total_tasks || 0,
-                  totalSessionTime: sessionStats.total_session_time || 0,
-                  weeklyStats: {
-                    thisWeek: {
-                      tasks: thisWeekTasks.tasks_this_week || 0,
-                      sessions: thisWeekSessions.sessions_this_week || 0,
-                      time: thisWeekSessions.time_this_week || 0
-                    },
-                    lastWeek: {
-                      tasks: lastWeekTasks.tasks_last_week || 0,
-                      sessions: lastWeekSessions.sessions_last_week || 0,
-                      time: lastWeekSessions.time_last_week || 0
+                // Calculate streak with 1-day grace period
+                // Get all unique dates with sessions, ordered descending
+                db.all(`
+                  SELECT DISTINCT DATE(ws.started_at) as session_date
+                  FROM work_sessions ws
+                  JOIN projects p ON ws.project_id = p.id
+                  WHERE p.user_id = ?
+                  ORDER BY session_date DESC
+                `, [userId], (err, sessionDates) => {
+                  if (err) {
+                    return res.status(500).json({ error: err.message });
+                  }
+
+                  let streak = 0;
+                  let gapsUsed = 0;
+                  let currentDate = new Date();
+                  currentDate.setHours(0, 0, 0, 0);
+
+                  // Convert session dates to Date objects
+                  const dates = sessionDates.map((row: any) => new Date(row.session_date + 'T00:00:00Z'));
+                  
+                  // Check if today has a session
+                  const todayStr = currentDate.toISOString().split('T')[0];
+                  const hasToday = dates.some(d => d.toISOString().split('T')[0] === todayStr);
+                  
+                  if (hasToday) {
+                    streak = 1;
+                    currentDate.setDate(currentDate.getDate() - 1);
+                  } else {
+                    // Check yesterday (allows 1-day gap from today)
+                    const yesterdayStr = new Date(currentDate.getTime() - 24*60*60*1000).toISOString().split('T')[0];
+                    const hasYesterday = dates.some(d => d.toISOString().split('T')[0] === yesterdayStr);
+                    
+                    if (hasYesterday) {
+                      streak = 1;
+                      gapsUsed = 1;
+                      currentDate.setDate(currentDate.getDate() - 2);
+                    } else {
+                      // No recent activity, streak is 0
+                      streak = 0;
                     }
                   }
-                };
 
-                res.json(progressData);
+                  // Continue checking previous days
+                  for (let i = 0; i < dates.length && streak > 0; i++) {
+                    const checkDateStr = currentDate.toISOString().split('T')[0];
+                    const hasSession = dates.some(d => d.toISOString().split('T')[0] === checkDateStr);
+                    
+                    if (hasSession) {
+                      streak++;
+                      currentDate.setDate(currentDate.getDate() - 1);
+                    } else {
+                      // Check if we can use grace period
+                      const graceDateStr = new Date(currentDate.getTime() - 24*60*60*1000).toISOString().split('T')[0];
+                      const hasGraceSession = dates.some(d => d.toISOString().split('T')[0] === graceDateStr);
+                      
+                      if (hasGraceSession && gapsUsed === 0) {
+                        streak++;
+                        gapsUsed++;
+                        currentDate.setDate(currentDate.getDate() - 2);
+                      } else {
+                        break; // Streak broken
+                      }
+                    }
+                  }
+
+                  // Combine all statistics
+                  const progressData = {
+                    totalProjects: (projectStats as any)?.total_projects || 0,
+                    activeProjects: (projectStats as any)?.active_projects || 0,
+                    completedTasks: (taskStats as any)?.completed_tasks || 0,
+                    totalTasks: (taskStats as any)?.total_tasks || 0,
+                    totalSessionTime: (sessionStats as any)?.total_session_time || 0,
+                    streak: streak,
+                    weeklyStats: {
+                      thisWeek: {
+                        tasks: (thisWeekTasks as any)?.tasks_this_week || 0,
+                        sessions: (thisWeekSessions as any)?.sessions_this_week || 0,
+                        time: (thisWeekSessions as any)?.time_this_week || 0
+                      },
+                      lastWeek: {
+                        tasks: (lastWeekTasks as any)?.tasks_last_week || 0,
+                        sessions: (lastWeekSessions as any)?.sessions_last_week || 0,
+                        time: (lastWeekSessions as any)?.time_last_week || 0
+                      }
+                    }
+                  };
+
+                  res.json(progressData);
+                });
               });
             });
           });

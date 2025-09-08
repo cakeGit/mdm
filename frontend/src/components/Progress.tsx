@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { MomentumMeter } from '@/components/MomentumMeter';
+import { ActivityCalendar } from '@/components/ActivityCalendar';
 import { apiRequest } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -10,6 +12,7 @@ interface ProgressData {
   completedTasks: number;
   totalTasks: number;
   totalSessionTime: number;
+  streak: number;
   weeklyStats: {
     thisWeek: { tasks: number; sessions: number; time: number };
     lastWeek: { tasks: number; sessions: number; time: number };
@@ -101,59 +104,68 @@ export function ProgressView() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Tasks Completed</div>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.tasks}</span>
-                <span className="text-sm text-muted-foreground">this week</span>
-                {data.weeklyStats.thisWeek.tasks > data.weeklyStats.lastWeek.tasks ? (
-                  <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.tasks - data.weeklyStats.lastWeek.tasks}</span>
-                ) : data.weeklyStats.thisWeek.tasks < data.weeklyStats.lastWeek.tasks ? (
-                  <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.tasks - data.weeklyStats.thisWeek.tasks}</span>
-                ) : (
-                  <span className="text-gray-600 text-sm">= same</span>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <div className="text-sm text-muted-foreground">Work Sessions</div>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.sessions}</span>
-                <span className="text-sm text-muted-foreground">this week</span>
-                {data.weeklyStats.thisWeek.sessions > data.weeklyStats.lastWeek.sessions ? (
-                  <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.sessions - data.weeklyStats.lastWeek.sessions}</span>
-                ) : data.weeklyStats.thisWeek.sessions < data.weeklyStats.lastWeek.sessions ? (
-                  <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.sessions - data.weeklyStats.thisWeek.sessions}</span>
-                ) : (
-                  <span className="text-gray-600 text-sm">= same</span>
-                )}
-              </div>
-            </div>
+      {/* Momentum Meter */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <MomentumMeter />
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Comparison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Tasks Completed</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.tasks}</span>
+                    <span className="text-sm text-muted-foreground">this week</span>
+                    {data.weeklyStats.thisWeek.tasks > data.weeklyStats.lastWeek.tasks ? (
+                      <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.tasks - data.weeklyStats.lastWeek.tasks}</span>
+                    ) : data.weeklyStats.thisWeek.tasks < data.weeklyStats.lastWeek.tasks ? (
+                      <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.tasks - data.weeklyStats.thisWeek.tasks}</span>
+                    ) : (
+                      <span className="text-gray-600 text-sm">= same</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="text-sm text-muted-foreground">Work Sessions</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.sessions}</span>
+                    <span className="text-sm text-muted-foreground">this week</span>
+                    {data.weeklyStats.thisWeek.sessions > data.weeklyStats.lastWeek.sessions ? (
+                      <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.sessions - data.weeklyStats.lastWeek.sessions}</span>
+                    ) : data.weeklyStats.thisWeek.sessions < data.weeklyStats.lastWeek.sessions ? (
+                      <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.sessions - data.weeklyStats.thisWeek.sessions}</span>
+                    ) : (
+                      <span className="text-gray-600 text-sm">= same</span>
+                    )}
+                  </div>
+                </div>
 
-            <div>
-              <div className="text-sm text-muted-foreground">Time Spent</div>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold">{formatTime(data.weeklyStats.thisWeek.time)}</span>
-                <span className="text-sm text-muted-foreground">this week</span>
-                {data.weeklyStats.thisWeek.time > data.weeklyStats.lastWeek.time ? (
-                  <span className="text-green-600 text-sm">↑ {formatTime(data.weeklyStats.thisWeek.time - data.weeklyStats.lastWeek.time)}</span>
-                ) : data.weeklyStats.thisWeek.time < data.weeklyStats.lastWeek.time ? (
-                  <span className="text-red-600 text-sm">↓ {formatTime(data.weeklyStats.lastWeek.time - data.weeklyStats.thisWeek.time)}</span>
-                ) : (
-                  <span className="text-gray-600 text-sm">= same</span>
-                )}
+                <div>
+                  <div className="text-sm text-muted-foreground">Time Spent</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-semibold">{formatTime(data.weeklyStats.thisWeek.time)}</span>
+                    <span className="text-sm text-muted-foreground">this week</span>
+                    {data.weeklyStats.thisWeek.time > data.weeklyStats.lastWeek.time ? (
+                      <span className="text-green-600 text-sm">↑ {formatTime(data.weeklyStats.thisWeek.time - data.weeklyStats.lastWeek.time)}</span>
+                    ) : data.weeklyStats.thisWeek.time < data.weeklyStats.lastWeek.time ? (
+                      <span className="text-red-600 text-sm">↓ {formatTime(data.weeklyStats.lastWeek.time - data.weeklyStats.thisWeek.time)}</span>
+                    ) : (
+                      <span className="text-gray-600 text-sm">= same</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Activity Calendar */}
+      <ActivityCalendar />
     </div>
   );
 }

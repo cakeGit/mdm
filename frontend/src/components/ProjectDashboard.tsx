@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { EditProjectModal } from '@/components/EditProjectModal';
+import { MomentumMeter } from '@/components/MomentumMeter';
 import { Project } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -89,8 +90,15 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, index) => (
+        <div className="space-y-6">
+          {/* Momentum Meter */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <MomentumMeter />
+          </div>
+          
+          {/* Projects Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project, index) => (
             <Card 
               key={project.id} 
               className="card-bubbly cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fadeIn group"
@@ -175,6 +183,7 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
       )}
 

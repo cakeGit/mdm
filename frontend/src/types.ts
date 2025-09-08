@@ -33,6 +33,16 @@ export interface Task {
   priority: 1 | 2 | 3; // 1 = High, 2 = Medium, 3 = Low
   created_at?: string;
   completed_at?: string;
+  is_pinned?: boolean;
+  notes?: string;
+}
+
+export interface TaskNote {
+  id?: number;
+  task_id: number;
+  content: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WorkSession {

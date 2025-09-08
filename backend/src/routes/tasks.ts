@@ -8,7 +8,7 @@ const router = express.Router();
 // PATCH /api/tasks/:id - Update a task
 router.patch('/:id', authenticateToken, (req: any, res) => {
   const taskId = parseInt(req.params.id);
-  const { status, title, description, priority } = req.body;
+  const { status, title, description, priority, is_pinned, notes } = req.body;
   
   const db = getDatabase();
   
@@ -54,6 +54,16 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
     if (priority !== undefined) {
       updates.push('priority = ?');
       values.push(priority);
+    }
+    
+    if (is_pinned !== undefined) {
+      updates.push('is_pinned = ?');
+      values.push(is_pinned ? 1 : 0);
+    }
+    
+    if (notes !== undefined) {
+      updates.push('notes = ?');
+      values.push(notes);
     }
     
     if (updates.length === 0) {
@@ -121,3 +131,23 @@ router.post('/', authenticateToken, (req: any, res) => {
 });
 
 export default router;
+
+// GET /api/tasks/pinned - Get user's pinned tasks
+router.get('/pinned', authenticateToken, (req: any, res) => {
+  const db = getDatabase();
+  
+  db.all(`
+    SELECT t.*, s.name as stage_name, p.name as project_name, p.color as project_color
+    FROM tasks t
+    JOIN stages s ON t.stage_id = s.id
+    JOIN projects p ON s.project_id = p.id
+    WHERE p.user_id = ? AND t.is_pinned = 1
+    ORDER BY t.priority ASC, t.created_at ASC
+  `, [req.user.userId], (err, tasks) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    res.json(tasks);
+  });
+});

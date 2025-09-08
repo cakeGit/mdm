@@ -8,9 +8,11 @@ import { ProjectDetail } from './components/ProjectDetail';
 import { ProgressView } from './components/Progress';
 import { SessionsView } from './components/Sessions';
 import { NewProjectModal } from './components/NewProjectModal';
+import { QuickAddTask } from './components/QuickAddTask';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { Project } from './types';
 import { apiRequest } from './lib/api';
+import { useHotkeys } from './hooks/useHotkeys';
 
 type View = 'dashboard' | 'projects' | 'progress' | 'sessions' | 'project';
 
@@ -20,7 +22,17 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [showQuickAddTask, setShowQuickAddTask] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  // Global hotkeys
+  useHotkeys({
+    'ctrl+shift+t': () => {
+      if (user) {
+        setShowQuickAddTask(true);
+      }
+    }
+  });
 
   useEffect(() => {
     if (user) {
@@ -138,6 +150,12 @@ function AppContent() {
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}
         onProjectCreated={handleProjectCreated}
+      />
+      
+      <QuickAddTask
+        isOpen={showQuickAddTask}
+        onClose={() => setShowQuickAddTask(false)}
+        onTaskAdded={fetchProjects}
       />
     </Layout>
   );

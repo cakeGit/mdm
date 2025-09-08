@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Filter } from 'lucide-react';
+import { Calendar, Clock, Filter, Plus } from 'lucide-react';
+import { SessionLogger } from '@/components/SessionLogger';
 import { apiRequest } from '@/lib/api';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -20,6 +21,7 @@ export function SessionsView() {
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [showSessionLogger, setShowSessionLogger] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -58,20 +60,26 @@ export function SessionsView() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Work Sessions</h1>
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <div className="flex space-x-1">
-            {(['all', 'today', 'week', 'month'] as const).map((f) => (
-              <Button
-                key={f}
-                variant={filter === f ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter(f)}
-                className="capitalize"
-              >
-                {f}
-              </Button>
-            ))}
+        <div className="flex items-center space-x-4">
+          <Button onClick={() => setShowSessionLogger(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Log Session
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex space-x-1">
+              {(['all', 'today', 'week', 'month'] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={filter === f ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilter(f)}
+                  className="capitalize"
+                >
+                  {f}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -169,6 +177,12 @@ export function SessionsView() {
           )}
         </CardContent>
       </Card>
+      
+      <SessionLogger
+        isOpen={showSessionLogger}
+        onClose={() => setShowSessionLogger(false)}
+        onSessionLogged={fetchSessions}
+      />
     </div>
   );
 }

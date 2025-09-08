@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProjectModal } from '@/components/EditProjectModal';
+import { TaskNotes } from '@/components/TaskNotes';
 import { ProjectWithDetails, Stage, Task } from '@/types';
 import { apiRequest } from '@/lib/api';
 
@@ -134,6 +135,21 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     }
   };
 
+  const toggleTaskPin = async (taskId: number, isPinned: boolean) => {
+    try {
+      await apiRequest(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_pinned: !isPinned }),
+      });
+      fetchProject(); // Refresh project data
+    } catch (error) {
+      console.error('Failed to toggle task pin:', error);
+    }
+  };
+
   const renderStage = (stage: Stage) => {
     const isExpanded = expandedStages.has(stage.id!);
     const completedTasks = stage.tasks?.filter(t => t.status === 'completed').length || 0;
@@ -171,10 +187,15 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             {stage.tasks && stage.tasks.length > 0 ? (
               <div className="space-y-2">
                 {stage.tasks.map((task) => (
-                  <div key={task.id} className={`p-3 rounded border ${getTaskStatusColor(task.status)}`}>
+                  <div key={task.id} className={`p-3 rounded border ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h4 className="font-medium">{task.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{task.title}</h4>
+                          {task.is_pinned && (
+                            <Pin className="w-4 h-4 text-yellow-600" />
+                          )}
+                        </div>
                         {task.description && (
                           <p className="text-sm mt-1">{task.description}</p>
                         )}
@@ -183,8 +204,24 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             Priority: {task.priority === 1 ? 'High' : task.priority === 2 ? 'Medium' : 'Low'}
                           </span>
                         </div>
+                        
+                        {/* Task Notes */}
+                        <div className="mt-3">
+                          <TaskNotes taskId={task.id!} />
+                        </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex flex-col gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTaskPin(task.id!, task.is_pinned || false);
+                          }}
+                          title={task.is_pinned ? 'Unpin task' : 'Pin task'}
+                        >
+                          {task.is_pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                        </Button>
                         {task.status !== 'completed' && (
                           <Button 
                             size="sm" 
