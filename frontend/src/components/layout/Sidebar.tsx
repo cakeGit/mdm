@@ -44,7 +44,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-center mb-4">
           <div className="bg-gray-100 px-4 py-2 rounded-lg">
-            <span className="text-gray-600 font-mono text-lg tracking-widest">m d m</span>
+            <span className="text-gray-600 font-mono text-lg tracking-widest">mdm</span>
           </div>
         </div>
         <div className="text-sm text-muted-foreground text-center">
