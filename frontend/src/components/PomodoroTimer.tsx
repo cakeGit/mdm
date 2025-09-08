@@ -2,19 +2,25 @@ import { useState, useEffect } from 'react';
 import { Play, Pause, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { FocusRecap } from '@/components/FocusRecap';
 import { Project } from '@/types';
+import { apiRequest } from '@/lib/api';
 
 interface PomodoroTimerProps {
   projects: Project[];
   currentProjectId?: number;
+  isMinimal?: boolean;
 }
 
-export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps) {
+export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }: PomodoroTimerProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(currentProjectId || null);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [notes, setNotes] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [showRecap, setShowRecap] = useState(false);
+  const [completedSession, setCompletedSession] = useState<any>(null);
 
   // Update selected project when currentProjectId changes
   useEffect(() => {
@@ -47,6 +53,7 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
   const startTimer = () => {
     if (selectedProjectId) {
       setIsRunning(true);
+      setSessionStartTime(new Date());
     }
   };
 
@@ -58,27 +65,40 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
     setIsRunning(false);
     setTimeLeft(25 * 60);
     setNotes('');
+    setSessionStartTime(null);
   };
 
   const handleSessionComplete = async () => {
     if (selectedProjectId) {
+      const project = projects.find(p => p.id === selectedProjectId);
+      const duration = sessionStartTime ? (Date.now() - sessionStartTime.getTime()) / 1000 : 25 * 60;
+      
       try {
-        await fetch('/api/sessions', {
+        const response = await apiRequest('/api/sessions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             project_id: selectedProjectId,
-            duration: 25 * 60, // 25 minutes
+            duration: Math.floor(duration),
             notes: notes.trim() || undefined,
           }),
         });
+
+        if (response.ok) {
+          // Show focus recap
+          setCompletedSession({
+            projectName: project?.name || 'Unknown Project',
+            duration: Math.floor(duration),
+            projectColor: project?.color,
+          });
+          setShowRecap(true);
+        }
         
         // Reset timer
         setTimeLeft(25 * 60);
         setNotes('');
-        alert('Pomodoro session completed! Great work!');
       } catch (error) {
         console.error('Failed to save session:', error);
       }
@@ -86,7 +106,8 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
   };
 
   return (
-  <Card className={`fixed bottom-4 right-4 shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50 ${isCollapsed ? 'p-0 flex items-center justify-center' : 'w-80'}`}>
+    <>
+      <Card className={`${isMinimal ? '' : 'fixed bottom-4 right-4'} shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50 ${isCollapsed ? 'p-0 flex items-center justify-center' : isMinimal ? 'w-full' : 'w-80'}`}>
       {isCollapsed ? (
         <Button
           variant="ghost"
@@ -110,14 +131,16 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
               <h3 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 🍅 Pomodoro Timer
               </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsCollapsed(true)}
-                className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 transition-all duration-200"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </Button>
+              {!isMinimal && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsCollapsed(true)}
+                  className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 transition-all duration-200"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -212,6 +235,16 @@ export function PomodoroTimer({ projects, currentProjectId }: PomodoroTimerProps
           </CardContent>
         </>
       )}
-    </Card>
+      </Card>
+      
+      <FocusRecap
+        isOpen={showRecap}
+        onClose={() => {
+          setShowRecap(false);
+          setCompletedSession(null);
+        }}
+        sessionData={completedSession}
+      />
+    </>
   );
 }

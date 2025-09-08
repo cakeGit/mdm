@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { MomentumMeter } from '@/components/MomentumMeter';
+import { AutoRolloverTasks } from '@/components/AutoRolloverTasks';
+import { ReviveProjectPrompt } from '@/components/ReviveProjectPrompt';
+import { ProgressiveCelebrations } from '@/components/ProgressiveCelebrations';
 import { Project } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -18,6 +21,10 @@ interface ProjectDashboardProps {
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
   const [loading, setLoading] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [celebration, setCelebration] = useState<{
+    trigger: 'task' | 'stage' | 'project' | 'streak' | null;
+    data?: any;
+  }>({ trigger: null });
 
   // Remove the automatic refresh as it can interfere with navigation
   // useEffect(() => {
@@ -94,6 +101,8 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
           {/* Momentum Meter */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <MomentumMeter />
+            <AutoRolloverTasks onTaskComplete={onRefresh} />
+            <ReviveProjectPrompt onProjectSelect={onProjectSelect} onRefresh={onRefresh} />
           </div>
           
           {/* Projects Grid */}
@@ -192,6 +201,12 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
         onClose={() => setEditingProject(null)}
         onProjectUpdated={handleEditComplete}
         project={editingProject}
+      />
+      
+      <ProgressiveCelebrations
+        trigger={celebration.trigger}
+        data={celebration.data}
+        onClose={() => setCelebration({ trigger: null })}
       />
     </div>
   );
