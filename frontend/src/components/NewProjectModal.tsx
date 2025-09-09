@@ -91,6 +91,12 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   className="w-16 h-12 rounded-xl border-2 border-gray-200 cursor-pointer shadow-sm hover:shadow-md transition-all duration-200"
+                  style={{
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none',
+                    borderRadius: '12px'
+                  }}
                 />
                 <Input
                   value={formData.color}

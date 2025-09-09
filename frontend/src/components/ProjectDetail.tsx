@@ -335,7 +335,33 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 {stage.tasks.map((task) => (
                   <div key={task.id} className={`p-3 rounded border ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`}>
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                      <div className="flex flex-col gap-1">
+                        {task.status !== 'completed' && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTaskStatus(task.id!, 'completed');
+                            }}
+                          >
+                            ✓
+                          </Button>
+                        )}
+                        {task.status === 'completed' && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTaskStatus(task.id!, 'todo');
+                            }}
+                          >
+                            ↺
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex-1 px-3">
                         <div className="flex items-center gap-2">
                           {editingTask === task.id ? (
                             <Input
@@ -387,30 +413,6 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                         >
                           {task.is_pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                         </Button>
-                        {task.status !== 'completed' && (
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateTaskStatus(task.id!, 'completed');
-                            }}
-                          >
-                            ✓
-                          </Button>
-                        )}
-                        {task.status === 'completed' && (
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateTaskStatus(task.id!, 'todo');
-                            }}
-                          >
-                            ↺
-                          </Button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -435,7 +437,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
 
             {/* Inline New Task Form */}
             {showNewTaskForm === stage.id && (
-              <Card className="border-dashed border-2 border-green-300 bg-green-50">
+              <Card className="border-dashed border-2 border-green-300 bg-green-50 animate-fadeIn">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div>
@@ -444,6 +446,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder="Enter task title..."
                         className="border-green-300 focus:border-green-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (newTaskTitle.trim()) {
+                              handleAddTask(stage.id!);
+                            }
+                          }
+                        }}
                       />
                     </div>
                     <div>
@@ -452,6 +462,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                         onChange={(e) => setNewTaskDescription(e.target.value)}
                         placeholder="Enter task description (optional)..."
                         className="border-green-300 focus:border-green-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (newTaskTitle.trim()) {
+                              handleAddTask(stage.id!);
+                            }
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -616,7 +634,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 {project.stages.map(renderStage)}
                 {/* Inline New Stage Form */}
                 {showNewStageForm && (
-                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50 animate-fadeIn">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div>
@@ -625,6 +643,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             onChange={(e) => setNewStageName(e.target.value)}
                             placeholder="Enter stage name..."
                             className="border-blue-300 focus:border-blue-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (newStageName.trim()) {
+                                  handleAddStage();
+                                }
+                              }
+                            }}
                           />
                         </div>
                         <div>
@@ -633,6 +659,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             onChange={(e) => setNewStageDescription(e.target.value)}
                             placeholder="Enter stage description (optional)..."
                             className="border-blue-300 focus:border-blue-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (newStageName.trim()) {
+                                  handleAddStage();
+                                }
+                              }
+                            }}
                           />
                         </div>
                         <div className="flex justify-end gap-2">
@@ -674,7 +708,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 </Card>
                 {/* Inline New Stage Form for empty state */}
                 {showNewStageForm && (
-                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50 animate-fadeIn">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div>
@@ -683,6 +717,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             onChange={(e) => setNewStageName(e.target.value)}
                             placeholder="Enter stage name..."
                             className="border-blue-300 focus:border-blue-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (newStageName.trim()) {
+                                  handleAddStage();
+                                }
+                              }
+                            }}
                           />
                         </div>
                         <div>
@@ -691,6 +733,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             onChange={(e) => setNewStageDescription(e.target.value)}
                             placeholder="Enter stage description (optional)..."
                             className="border-blue-300 focus:border-blue-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (newStageName.trim()) {
+                                  handleAddStage();
+                                }
+                              }
+                            }}
                           />
                         </div>
                         <div className="flex justify-end gap-2">
@@ -698,6 +748,25 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
+                              setShowNewStageForm(false);
+                              setNewStageName('');
+                              setNewStageDescription('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={handleAddStage} 
+                            disabled={!newStageName.trim()}
+                          >
+                            Save Stage
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                               setShowNewStageForm(false);
                               setNewStageName('');
                               setNewStageDescription('');

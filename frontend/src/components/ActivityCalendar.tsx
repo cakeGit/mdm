@@ -67,13 +67,14 @@ export function ActivityCalendar() {
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
-  // Generate last 6 months (approximately 180 days) for display
+  // Generate last 48 weeks for continuous display
   const generateCalendarDays = () => {
     const days = [];
     const today = new Date();
+    const daysToShow = 48 * 7; // 48 weeks = 336 days
     
-    // Go back 6 months
-    for (let i = 179; i >= 0; i--) {
+    // Go back 48 weeks
+    for (let i = daysToShow - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
@@ -85,7 +86,9 @@ export function ActivityCalendar() {
         date: dateStr,
         dayOfWeek: date.getDay(),
         month: date.getMonth(),
+        year: date.getFullYear(),
         dayOfMonth: date.getDate(),
+        weekOfYear: Math.floor(i / 7),
         activity,
         level
       });
@@ -112,31 +115,20 @@ export function ActivityCalendar() {
 
   const calendarDays = generateCalendarDays();
   
-  // Group days by month for horizontal display
-  const monthGroups = [];
-  let currentMonth = -1;
-  let currentGroup = [];
-  
-  calendarDays.forEach(day => {
-    if (day.month !== currentMonth) {
-      if (currentGroup.length > 0) {
-        monthGroups.push({
-          month: currentMonth,
-          days: currentGroup
-        });
-      }
-      currentMonth = day.month;
-      currentGroup = [day];
-    } else {
-      currentGroup.push(day);
-    }
-  });
-  
-  // Add the last group
-  if (currentGroup.length > 0) {
-    monthGroups.push({
-      month: currentMonth,
-      days: currentGroup
+  // Group days by week for continuous horizontal display
+  const weekGroups = [];
+  for (let i = 0; i < calendarDays.length; i += 7) {
+    const weekDays = calendarDays.slice(i, i + 7);
+    const firstDay = weekDays[0];
+    
+    // Check if this week starts a new month
+    const isNewMonth = i === 0 || 
+      (i > 0 && calendarDays[i - 1].month !== firstDay.month);
+    
+    weekGroups.push({
+      days: weekDays,
+      weekIndex: Math.floor(i / 7),
+      monthLabel: isNewMonth ? getMonthName(firstDay.month) : null
     });
   }
 
@@ -176,45 +168,50 @@ export function ActivityCalendar() {
             </div>
           </div>
 
-          {/* Calendar Grid - Horizontal by Month */}
-          <div className="space-y-2">
-            {/* Month Headers */}
-            <div className="flex space-x-1">
-              {monthGroups.map((group, index) => (
-                <div key={index} className="flex-1 text-center">
-                  <div className="text-xs text-gray-500 font-medium mb-1">
-                    {getMonthName(group.month)}
-                  </div>
+          {/* Calendar Grid - Continuous horizontal by week */}
+          <div className="space-y-1">
+            {/* Month labels positioned above weeks where months start */}
+            <div className="flex">
+              {weekGroups.map((week, index) => (
+                <div key={index} className="flex-1 min-w-[14px]">
+                  {week.monthLabel && (
+                    <div className="text-xs text-gray-500 font-medium text-center mb-1">
+                      {week.monthLabel}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             
             {/* Day grid - 7 rows for each day of week */}
             {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
-              <div key={dayOfWeek} className="flex space-x-1 items-center">
+              <div key={dayOfWeek} className="flex items-center">
                 {/* Day label */}
                 <div className="w-8 text-xs text-gray-500 text-right mr-2">
                   {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
                 </div>
                 
-                {/* Days for this day of week across all months */}
-                {monthGroups.map((group, monthIndex) => (
-                  <div key={monthIndex} className="flex-1 flex space-x-0.5">
-                    {group.days
-                      .filter(day => day.dayOfWeek === dayOfWeek)
-                      .map((day, dayIndex) => (
-                        <div
-                          key={dayIndex}
-                          className={`w-2.5 h-2.5 rounded-sm ${getIntensityColor(day.level)} cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
-                          title={
-                            day.activity 
-                              ? `${day.date}: ${day.activity.sessions} sessions, ${formatTime(day.activity.totalTime)}`
-                              : `${day.date}: No activity`
-                          }
-                        />
-                      ))}
-                  </div>
-                ))}
+                {/* Days for this day of week across all weeks */}
+                <div className="flex flex-1 gap-0.5">
+                  {weekGroups.map((week, weekIndex) => {
+                    const dayForThisWeekday = week.days.find(day => day.dayOfWeek === dayOfWeek);
+                    return (
+                      <div
+                        key={weekIndex}
+                        className={`w-2.5 h-2.5 rounded-sm ${
+                          dayForThisWeekday ? getIntensityColor(dayForThisWeekday.level) : 'bg-gray-100'
+                        } cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
+                        title={
+                          dayForThisWeekday && dayForThisWeekday.activity 
+                            ? `${dayForThisWeekday.date}: ${dayForThisWeekday.activity.sessions} sessions, ${formatTime(dayForThisWeekday.activity.totalTime)}`
+                            : dayForThisWeekday 
+                              ? `${dayForThisWeekday.date}: No activity`
+                              : ''
+                        }
+                      />
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
