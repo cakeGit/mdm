@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { TaskNotes } from '@/components/TaskNotes';
+import { SegmentedProgressBar } from '@/components/SegmentedProgressBar';
 import { ProjectWithDetails, Stage, Task } from '@/types';
 import { apiRequest } from '@/lib/api';
 
@@ -277,6 +278,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     const isExpanded = expandedStages.has(stage.id!) && !showCompactView;
     const completedTasks = stage.tasks?.filter(t => t.status === 'completed').length || 0;
     const totalTasks = stage.tasks?.length || 0;
+    const stageProgress = stage.progress || 0;
 
     return (
       <div key={stage.id} className="border rounded-lg p-4 bg-white shadow-sm">
@@ -314,13 +316,13 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             )}
             {totalTasks > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                {completedTasks}/{totalTasks} tasks completed
+                {completedTasks}/{totalTasks} tasks completed ({stageProgress.toFixed(1)}%)
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             {totalTasks > 0 && (
-              <Progress value={(completedTasks / totalTasks) * 100} className="w-20 h-2 border border-gray-300" />
+              <Progress value={stageProgress} className="w-20 h-2 border border-gray-300" />
             )}
             <Button variant="ghost" size="sm">
               {isExpanded ? '−' : '+'}
@@ -520,7 +522,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const allTasks = project.stages?.flatMap(stage => stage.tasks || []) || [];
   const totalTasks = allTasks.length;
   const completedTasks = allTasks.filter(task => task.status === 'completed').length;
-  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  // Use stage-based progress from backend
+  const overallProgress = project.progress || 0;
+  const stageProgress = project.stageProgress || [];
 
   return (
     <div className="p-8">
@@ -603,7 +608,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <span>Overall Progress</span>
               <span>{completedTasks}/{totalTasks} tasks</span>
             </div>
-            <Progress value={progressPercentage} className="h-3 border border-gray-300" />
+            <SegmentedProgressBar stageProgress={stageProgress} className="mb-2" />
+            <div className="text-xs text-gray-600 text-center">
+              {overallProgress.toFixed(1)}% complete
+            </div>
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ const router = express.Router();
 
 // POST /api/stages - Create a new stage
 router.post('/', authenticateToken, (req: any, res) => {
-  const { project_id, name, description, parent_stage_id } = req.body;
+  const { project_id, name, description, parent_stage_id, weight = 1 } = req.body;
   
   if (!project_id || !name) {
     return res.status(400).json({ error: 'Project ID and stage name are required' });
@@ -26,9 +26,9 @@ router.post('/', authenticateToken, (req: any, res) => {
     }
     
     db.run(`
-      INSERT INTO stages (project_id, parent_stage_id, name, description, sort_order)
-      VALUES (?, ?, ?, ?, 0)
-    `, [project_id, parent_stage_id || null, name, description], function(err) {
+      INSERT INTO stages (project_id, parent_stage_id, name, description, sort_order, weight)
+      VALUES (?, ?, ?, ?, 0, ?)
+    `, [project_id, parent_stage_id || null, name, description, weight], function(err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -43,6 +43,7 @@ router.post('/', authenticateToken, (req: any, res) => {
         name,
         description,
         sort_order: 0,
+        weight,
         is_completed: false
       });
     });

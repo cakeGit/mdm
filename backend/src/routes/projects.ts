@@ -24,11 +24,67 @@ router.get('/', authenticateToken, (req: any, res) => {
       return res.status(500).json({ error: err.message });
     }
     
-    // For each project, get the suggested next task
-    const projects = rows.map(row => ({
-      ...row,
-      progress: row.total_tasks > 0 ? (row.completed_tasks / row.total_tasks) * 100 : 0
-    }));
+    // Calculate stage-based progress for each project
+    const projectIds = rows.map(row => row.id);
+    if (projectIds.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get all stages with their task completion stats
+    const stagesQuery = `
+      SELECT s.id, s.project_id, s.weight,
+             COUNT(t.id) as stage_total_tasks,
+             COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as stage_completed_tasks
+      FROM stages s
+      LEFT JOIN tasks t ON s.id = t.stage_id
+      WHERE s.project_id IN (${projectIds.map(() => '?').join(',')})
+        AND s.parent_stage_id IS NULL
+      GROUP BY s.id, s.project_id, s.weight
+    `;
+    
+    db.all(stagesQuery, projectIds, (err, stages: any[]) => {
+      if (err) {
+        console.error('Error fetching stage progress:', err);
+        // Fallback to task-based progress
+        const projects = rows.map(row => ({
+          ...row,
+          progress: row.total_tasks > 0 ? (row.completed_tasks / row.total_tasks) * 100 : 0
+        }));
+        return res.json(projects);
+      }
+      
+      // Calculate stage-based progress for each project
+      const projects = rows.map(row => {
+        const projectStages = stages.filter(stage => stage.project_id === row.id);
+        
+        if (projectStages.length === 0) {
+          return {
+            ...row,
+            progress: 0
+          };
+        }
+        
+        // Calculate weighted average of stage completions
+        const stageProgress = projectStages.map(stage => {
+          const completionRate = stage.stage_total_tasks > 0 
+            ? (stage.stage_completed_tasks / stage.stage_total_tasks) 
+            : 0;
+          return {
+            progress: completionRate * 100,
+            weight: stage.weight || 1
+          };
+        });
+        
+        const totalWeight = stageProgress.reduce((sum, stage) => sum + stage.weight, 0);
+        const weightedProgress = totalWeight > 0 
+          ? stageProgress.reduce((sum, stage) => sum + (stage.progress * stage.weight), 0) / totalWeight
+          : 0;
+        
+        return {
+          ...row,
+          progress: weightedProgress
+        };
+      });
     
     // Get suggested tasks for all projects
     const projectIds = projects.map(p => p.id).join(',');
@@ -62,6 +118,7 @@ router.get('/', authenticateToken, (req: any, res) => {
     } else {
       res.json(projects);
     }
+    });
   });
 });
 
@@ -150,12 +207,37 @@ router.get('/:id', authenticateToken, (req: any, res) => {
         const totalTasks = tasks.length;
         const completedTasks = tasks.filter(t => t.status === 'completed').length;
         
+        // Calculate stage-based progress
+        const stageProgress = rootStages.map(stage => {
+          const stageTasks = stage.tasks || [];
+          const stageCompletedTasks = stageTasks.filter((t: Task) => t.status === 'completed').length;
+          const stageCompletionRate = stageTasks.length > 0 ? (stageCompletedTasks / stageTasks.length) : 0;
+          
+          return {
+            ...stage,
+            progress: stageCompletionRate * 100,
+            weight: stage.weight || 1
+          };
+        });
+        
+        // Calculate total progress as weighted average of stage completions
+        const totalWeight = stageProgress.reduce((sum, stage) => sum + stage.weight, 0);
+        const weightedProgress = totalWeight > 0 
+          ? stageProgress.reduce((sum, stage) => sum + (stage.progress * stage.weight), 0) / totalWeight
+          : 0;
+
         const result: ProjectWithDetails = {
           ...project,
-          stages: rootStages,
+          stages: stageProgress,
           totalTasks,
           completedTasks,
-          progress: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+          progress: weightedProgress,
+          stageProgress: stageProgress.map(stage => ({
+            id: stage.id,
+            name: stage.name,
+            progress: stage.progress,
+            weight: stage.weight
+          }))
         };
         
         res.json(result);

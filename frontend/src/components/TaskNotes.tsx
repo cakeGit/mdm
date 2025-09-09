@@ -21,6 +21,8 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
   const [editingNote, setEditingNote] = useState<TaskNote | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [draggedNoteId, setDraggedNoteId] = useState<number | null>(null);
+  const [dragOverNoteId, setDragOverNoteId] = useState<number | null>(null);
+  const [insertPosition, setInsertPosition] = useState<'before' | 'after' | null>(null);
 
   useEffect(() => {
     fetchNotes();
@@ -100,19 +102,45 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
 
   const handleDragStart = (e: React.DragEvent, noteId: number) => {
     setDraggedNoteId(noteId);
-    e.dataTransfer.effectAllowed = 'move';
+    // Safely set effectAllowed if dataTransfer exists
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, noteId: number) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    if (!draggedNoteId || draggedNoteId === noteId) return;
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position = e.clientY < midY ? 'before' : 'after';
+    
+    setDragOverNoteId(noteId);
+    setInsertPosition(position);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're actually leaving the element
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || 
+        e.clientY < rect.top || e.clientY > rect.bottom) {
+      setDragOverNoteId(null);
+      setInsertPosition(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, dropTargetId: number) => {
     e.preventDefault();
     
-    if (!draggedNoteId || draggedNoteId === dropTargetId) {
+    if (!draggedNoteId || draggedNoteId === dropTargetId || !insertPosition) {
       setDraggedNoteId(null);
+      setDragOverNoteId(null);
+      setInsertPosition(null);
       return;
     }
 
@@ -121,15 +149,30 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
 
     if (draggedIndex === -1 || dropIndex === -1) {
       setDraggedNoteId(null);
+      setDragOverNoteId(null);
+      setInsertPosition(null);
       return;
     }
 
     const newNotes = [...notes];
     const [draggedNote] = newNotes.splice(draggedIndex, 1);
-    newNotes.splice(dropIndex, 0, draggedNote);
+    
+    // Calculate the actual insert position
+    let insertIndex = dropIndex;
+    if (insertPosition === 'after') {
+      insertIndex = dropIndex + 1;
+    }
+    // If dragged note was before the drop target, adjust insert index
+    if (draggedIndex < dropIndex && insertPosition === 'before') {
+      insertIndex = dropIndex - 1;
+    }
+
+    newNotes.splice(insertIndex, 0, draggedNote);
 
     setNotes(newNotes);
     setDraggedNoteId(null);
+    setDragOverNoteId(null);
+    setInsertPosition(null);
 
     // Update the order in the backend
     updateNoteOrder(newNotes);
@@ -154,6 +197,8 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
 
   const handleDragEnd = () => {
     setDraggedNoteId(null);
+    setDragOverNoteId(null);
+    setInsertPosition(null);
   };
 
   const openEditModal = (note: TaskNote) => {
@@ -191,45 +236,57 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
 
       {notes.length > 0 && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
-          {notes.map((note) => (
-            <Card 
-              key={note.id} 
-              className={`bg-white border-gray-200 cursor-move transition-all ${
-                draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
-              }`}
-              draggable
-              onDragStart={(e) => handleDragStart(e, note.id!)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, note.id!)}
-              onDragEnd={handleDragEnd}
-            >
-              <CardContent className="p-3">
-                <div className="flex justify-between items-start">
-                  <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
-                  <div className="flex space-x-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEditModal(note)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteNote(note.id!)}
-                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+          {notes.map((note, index) => (
+            <div key={note.id} className="relative">
+              {/* Insert position indicator - before */}
+              {dragOverNoteId === note.id && insertPosition === 'before' && (
+                <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+              )}
+              
+              <Card 
+                className={`bg-white border-gray-200 cursor-move transition-all ${
+                  draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
+                } ${dragOverNoteId === note.id ? 'ring-2 ring-blue-300' : ''}`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, note.id!)}
+                onDragOver={(e) => handleDragOver(e, note.id!)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, note.id!)}
+                onDragEnd={handleDragEnd}
+              >
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
+                    <div className="flex space-x-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(note)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteNote(note.id!)}
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {new Date(note.created_at!).toLocaleDateString()}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(note.created_at!).toLocaleDateString()}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Insert position indicator - after */}
+              {dragOverNoteId === note.id && insertPosition === 'after' && (
+                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+              )}
+            </div>
           ))}
         </div>
       )}

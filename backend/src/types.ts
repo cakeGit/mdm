@@ -16,6 +16,7 @@ export interface Stage {
   description?: string;
   sort_order: number;
   is_completed: boolean;
+  weight?: number;
   substages?: Stage[];
 }
 
@@ -53,8 +54,17 @@ export interface ProjectWithDetails extends Project {
   totalTasks: number;
   completedTasks: number;
   progress: number;
+  stageProgress?: StageProgress[];
 }
 
 export interface StageWithTasks extends Stage {
   tasks: Task[];
+  progress?: number;
+}
+
+export interface StageProgress {
+  id: number;
+  name: string;
+  progress: number;
+  weight: number;
 }
