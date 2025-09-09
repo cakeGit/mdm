@@ -79,7 +79,7 @@ export function ProgressView() {
           <CardContent>
             <div className="text-2xl font-bold text-green-900">{Math.round(taskCompletion)}%</div>
             <p className="text-xs text-green-600">{data.completedTasks} of {data.totalTasks} tasks</p>
-            <Progress value={taskCompletion} className="mt-2" />
+            <Progress value={taskCompletion} className="mt-2 border border-green-300" />
           </CardContent>
         </Card>
 

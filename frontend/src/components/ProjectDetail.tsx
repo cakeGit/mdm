@@ -161,6 +161,69 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     }
   };
 
+  // Stage inline editing functions
+  const startEditingStageName = (stage: Stage) => {
+    setEditingStage(stage.id!);
+    setTempStageName(stage.name);
+  };
+
+  const saveStageName = async () => {
+    if (!editingStage || tempStageName === project?.stages?.find(s => s.id === editingStage)?.name) {
+      setEditingStage(null);
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/stages/${editingStage}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tempStageName.trim() })
+      });
+      
+      setEditingStage(null);
+      fetchProject();
+    } catch (error) {
+      console.error('Failed to update stage name:', error);
+    }
+  };
+
+  // Task inline editing functions
+  const startEditingTaskTitle = (task: Task) => {
+    setEditingTask(task.id!);
+    setTempTaskTitle(task.title);
+  };
+
+  const saveTaskTitle = async () => {
+    if (!editingTask) {
+      return;
+    }
+
+    // Find the current task
+    let currentTask: Task | undefined;
+    project?.stages?.forEach(stage => {
+      const task = stage.tasks?.find(t => t.id === editingTask);
+      if (task) currentTask = task;
+    });
+
+    if (tempTaskTitle === currentTask?.title) {
+      setEditingTask(null);
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/tasks/${editingTask}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: tempTaskTitle.trim() })
+      });
+      
+      setEditingTask(null);
+      fetchProject();
+    } catch (error) {
+      console.error('Failed to update task title:', error);
+    }
+  };
+
   const getTaskStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
@@ -221,7 +284,30 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           onClick={() => toggleStage(stage.id!)}
         >
           <div>
-            <h3 className="font-semibold text-lg">{stage.name}</h3>
+            {editingStage === stage.id ? (
+              <Input
+                value={tempStageName}
+                onChange={(e) => setTempStageName(e.target.value)}
+                onBlur={saveStageName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveStageName();
+                  if (e.key === 'Escape') setEditingStage(null);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="text-lg font-semibold border-blue-300 focus:border-blue-500"
+                autoFocus
+              />
+            ) : (
+              <h3 
+                className="font-semibold text-lg cursor-pointer hover:bg-gray-100 rounded px-1 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditingStageName(stage);
+                }}
+              >
+                {stage.name}
+              </h3>
+            )}
             {stage.description && (
               <p className="text-sm text-muted-foreground">{stage.description}</p>
             )}
@@ -233,7 +319,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           </div>
           <div className="flex items-center gap-2">
             {totalTasks > 0 && (
-              <Progress value={(completedTasks / totalTasks) * 100} className="w-20 h-2" />
+              <Progress value={(completedTasks / totalTasks) * 100} className="w-20 h-2 border border-gray-300" />
             )}
             <Button variant="ghost" size="sm">
               {isExpanded ? '−' : '+'}
@@ -250,7 +336,26 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{task.title}</h4>
+                          {editingTask === task.id ? (
+                            <Input
+                              value={tempTaskTitle}
+                              onChange={(e) => setTempTaskTitle(e.target.value)}
+                              onBlur={saveTaskTitle}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveTaskTitle();
+                                if (e.key === 'Escape') setEditingTask(null);
+                              }}
+                              className="font-medium border-green-300 focus:border-green-500"
+                              autoFocus
+                            />
+                          ) : (
+                            <h4 
+                              className="font-medium cursor-pointer hover:bg-white rounded px-1 transition-colors"
+                              onClick={() => startEditingTaskTitle(task)}
+                            >
+                              {task.title}
+                            </h4>
+                          )}
                           {task.is_pinned && (
                             <Pin className="w-4 h-4 text-yellow-600" />
                           )}
@@ -479,7 +584,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <span>Overall Progress</span>
               <span>{completedTasks}/{totalTasks} tasks</span>
             </div>
-            <Progress value={progressPercentage} className="h-3" />
+            <Progress value={progressPercentage} className="h-3 border border-gray-300" />
           </div>
         </div>
       </div>

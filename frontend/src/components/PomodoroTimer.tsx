@@ -121,7 +121,17 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       "The ancient Romans invented focus mode when they removed Twitter from their tablets.", // Fake/outlandish
       "Studies show 87.3% of statistics about focus are made up on the spot.", // Fake
       "Focus is like pizza - even when it's bad, it's still pretty good.", // Outlandish
-      "Confucius say: Focus without wifi is like car without gas - technically possible but really inconvenient." // Fake/outlandish
+      "Confucius say: Focus without wifi is like car without gas - technically possible but really inconvenient.", // Fake/outlandish
+      "My grandmother always said: Focus is like underwear - essential, but nobody needs to see it.", // Outlandish
+      "NASA scientists recently discovered that focused developers emit 23% more caffeine particles.", // Fake
+      "In medieval times, monks achieved focus by staring at blank scrolls for hours. We now call this 'debugging'.", // Fake/outlandish
+      "Focus is the only superpower that doesn't require spandex.", // Outlandish
+      "Research shows that 94.7% of people who read this quote will immediately check their phone.", // Fake
+      "The Buddha achieved enlightenment through focus. He also didn't have TikTok.", // Fake/outlandish
+      "Focus: It's like meditation, but with more swearing at computers.", // Outlandish
+      "Ancient proverb: A focused mind is worth two in the notification center.", // Fake
+      "Scientists recently proved that rubber ducks improve focus by 127%. The ducks were unavailable for comment.", // Outlandish
+      "Focus is the art of ignoring everything except the thing you're supposed to be ignoring to focus on something else." // Outlandish
     ];
     return quotes[Math.floor(Math.random() * quotes.length)];
   };
@@ -272,41 +282,81 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       )}
       </Card>
       
-      {/* Focus Mode Overlay */}
+      {/* Focus Mode Overlay - positioned below the Pomodoro timer */}
       {focusMode && (
-        <div className="fixed inset-0 bg-white bg-opacity-95 z-40 flex items-center justify-center">
-          <div className="max-w-2xl w-full mx-4">
+        <div className="fixed inset-0 bg-white bg-opacity-98 z-30 pt-20">
+          <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="text-center space-y-8">
               {/* Random motivational quote */}
               <div className="space-y-4">
                 <div className="text-6xl">🎯</div>
-                <blockquote className="text-xl font-light text-gray-600 italic">
-                  {getRandomQuote()}
+                <blockquote className="text-xl font-light text-gray-600 italic max-w-2xl mx-auto">
+                  "{getRandomQuote()}"
                 </blockquote>
               </div>
 
               {/* Current task info */}
               {selectedProjectId && (
-                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Current Focus</h3>
-                  <div className="text-sm text-gray-600">
-                    Project: {projects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
-                  </div>
-                  <div className="mt-4 text-2xl font-mono font-bold text-gray-800">
-                    {formatTime(timeLeft)}
+                <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm max-w-lg mx-auto">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Focus</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: projects.find(p => p.id === selectedProjectId)?.color || '#6366f1' }}
+                      ></div>
+                      <span className="text-sm text-gray-600">
+                        {projects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-mono font-bold text-gray-800">
+                      {formatTime(timeLeft)}
+                    </div>
+                    {isRunning && (
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
+                          style={{ width: `${((25 * 60 - timeLeft) / (25 * 60)) * 100}%` }}
+                        ></div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Exit focus mode */}
-              <Button 
-                onClick={() => setFocusMode(false)}
-                variant="outline"
-                size="lg"
-                className="border-gray-300 text-gray-600 hover:bg-gray-50"
-              >
-                Exit Focus Mode
-              </Button>
+              {/* Controls */}
+              <div className="flex gap-4 justify-center">
+                {!isRunning ? (
+                  <Button 
+                    onClick={startTimer} 
+                    disabled={!selectedProjectId}
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Play className="mr-2 h-5 w-5" />
+                    Start Focus Session
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={pauseTimer} 
+                    size="lg" 
+                    variant="outline"
+                    className="border-orange-400 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Pause className="mr-2 h-5 w-5" />
+                    Pause
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={() => setFocusMode(false)}
+                  variant="outline"
+                  size="lg"
+                  className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Exit Focus Mode
+                </Button>
+              </div>
             </div>
           </div>
         </div>
