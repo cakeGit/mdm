@@ -19,10 +19,9 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [project, setProject] = useState<ProjectWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedStages, setExpandedStages] = useState<Set<number>>(new Set());
-  const [showNewStageModal, setShowNewStageModal] = useState(false);
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
-  const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
+  const [showNewStageForm, setShowNewStageForm] = useState(false);
+  const [showNewTaskForm, setShowNewTaskForm] = useState<number | null>(null);
   const [newStageName, setNewStageName] = useState('');
   const [newStageDescription, setNewStageDescription] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -70,22 +69,22 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       
       setNewStageName('');
       setNewStageDescription('');
-      setShowNewStageModal(false);
+      setShowNewStageForm(false);
       fetchProject(); // Refresh project data
     } catch (error) {
       console.error('Failed to add stage:', error);
     }
   };
 
-  const handleAddTask = async () => {
-    if (!newTaskTitle.trim() || !selectedStageId) return;
+  const handleAddTask = async (stageId: number) => {
+    if (!newTaskTitle.trim() || !stageId) return;
     
     try {
       await apiRequest('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stage_id: selectedStageId,
+          stage_id: stageId,
           title: newTaskTitle,
           description: newTaskDescription,
           priority: 2 // Default to medium priority
@@ -94,8 +93,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       
       setNewTaskTitle('');
       setNewTaskDescription('');
-      setShowNewTaskModal(false);
-      setSelectedStageId(null);
+      setShowNewTaskForm(null);
       fetchProject(); // Refresh project data
     } catch (error) {
       console.error('Failed to add task:', error);
@@ -261,13 +259,58 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               className="w-full"
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedStageId(stage.id!);
-                setShowNewTaskModal(true);
+                setShowNewTaskForm(stage.id!);
               }}
             >
               <Plus className="mr-2 h-3 w-3" />
               Add Task
             </Button>
+
+            {/* Inline New Task Form */}
+            {showNewTaskForm === stage.id && (
+              <Card className="border-dashed border-2 border-green-300 bg-green-50">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Input
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        placeholder="Enter task title..."
+                        className="border-green-300 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        value={newTaskDescription}
+                        onChange={(e) => setNewTaskDescription(e.target.value)}
+                        placeholder="Enter task description (optional)..."
+                        className="border-green-300 focus:border-green-500"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setShowNewTaskForm(null);
+                          setNewTaskTitle('');
+                          setNewTaskDescription('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleAddTask(stage.id!)} 
+                        disabled={!newTaskTitle.trim()}
+                      >
+                        Save Task
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {stage.substages && stage.substages.length > 0 && (
               <div className="pl-4 border-l-2 border-gray-200 space-y-3">
@@ -341,7 +384,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Project Stages</h2>
-            <Button onClick={() => setShowNewStageModal(true)}>
+            <Button onClick={() => setShowNewStageForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Stage
             </Button>
@@ -349,18 +392,112 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
 
           <div className="space-y-4">
             {project.stages && project.stages.length > 0 ? (
-              project.stages.map(renderStage)
+              <>
+                {project.stages.map(renderStage)}
+                {/* Inline New Stage Form */}
+                {showNewStageForm && (
+                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <Input
+                            value={newStageName}
+                            onChange={(e) => setNewStageName(e.target.value)}
+                            placeholder="Enter stage name..."
+                            className="border-blue-300 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            value={newStageDescription}
+                            onChange={(e) => setNewStageDescription(e.target.value)}
+                            placeholder="Enter stage description (optional)..."
+                            className="border-blue-300 focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setShowNewStageForm(false);
+                              setNewStageName('');
+                              setNewStageDescription('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={handleAddStage} 
+                            disabled={!newStageName.trim()}
+                          >
+                            Save Stage
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             ) : (
-              <Card>
-                <CardContent className="text-center p-8">
-                  <h3 className="font-semibold mb-2">No stages yet</h3>
-                  <p className="text-muted-foreground mb-4">Create your first stage to organize your mod development.</p>
-                  <Button onClick={() => setShowNewStageModal(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create First Stage
-                  </Button>
-                </CardContent>
-              </Card>
+              <>
+                <Card>
+                  <CardContent className="text-center p-8">
+                    <h3 className="font-semibold mb-2">No stages yet</h3>
+                    <p className="text-muted-foreground mb-4">Create your first stage to organize your mod development.</p>
+                    <Button onClick={() => setShowNewStageForm(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Stage
+                    </Button>
+                  </CardContent>
+                </Card>
+                {/* Inline New Stage Form for empty state */}
+                {showNewStageForm && (
+                  <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <Input
+                            value={newStageName}
+                            onChange={(e) => setNewStageName(e.target.value)}
+                            placeholder="Enter stage name..."
+                            className="border-blue-300 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            value={newStageDescription}
+                            onChange={(e) => setNewStageDescription(e.target.value)}
+                            placeholder="Enter stage description (optional)..."
+                            className="border-blue-300 focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setShowNewStageForm(false);
+                              setNewStageName('');
+                              setNewStageDescription('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={handleAddStage} 
+                            disabled={!newStageName.trim()}
+                          >
+                            Save Stage
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -376,76 +513,6 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           </Card>
         </div>
       </div>
-
-      {/* New Stage Modal */}
-      <Dialog open={showNewStageModal} onOpenChange={setShowNewStageModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Stage</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Stage Name</label>
-              <Input
-                value={newStageName}
-                onChange={(e) => setNewStageName(e.target.value)}
-                placeholder="Enter stage name..."
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description (optional)</label>
-              <Input
-                value={newStageDescription}
-                onChange={(e) => setNewStageDescription(e.target.value)}
-                placeholder="Enter stage description..."
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowNewStageModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddStage} disabled={!newStageName.trim()}>
-                Add Stage
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* New Task Modal */}
-      <Dialog open={showNewTaskModal} onOpenChange={setShowNewTaskModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Task Title</label>
-              <Input
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="Enter task title..."
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description (optional)</label>
-              <Input
-                value={newTaskDescription}
-                onChange={(e) => setNewTaskDescription(e.target.value)}
-                placeholder="Enter task description..."
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowNewTaskModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()}>
-                Add Task
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit Project Modal */}
       <EditProjectModal

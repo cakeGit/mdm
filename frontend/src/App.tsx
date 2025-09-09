@@ -15,7 +15,7 @@ import { Project } from './types';
 import { apiRequest } from './lib/api';
 import { useHotkeys } from './hooks/useHotkeys';
 
-type View = 'dashboard' | 'projects' | 'progress' | 'sessions' | 'project';
+type View = 'dashboard' | 'progress' | 'sessions' | 'project';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -101,15 +101,6 @@ function AppContent() {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return (
-          <ProjectDashboard
-            projects={projects}
-            onProjectSelect={handleProjectSelect}
-            onNewProject={handleNewProject}
-            onRefresh={fetchProjects}
-          />
-        );
-      case 'projects':
         return (
           <ProjectDashboard
             projects={projects}

@@ -17,8 +17,10 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
   const [notes, setNotes] = useState<TaskNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editingNote, setEditingNote] = useState<TaskNote | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [draggedNoteId, setDraggedNoteId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchNotes();
@@ -51,7 +53,7 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
 
       if (response.ok) {
         setNewNoteContent('');
-        setShowAddModal(false);
+        setShowAddForm(false);
         await fetchNotes();
       }
     } catch (error) {
@@ -96,6 +98,46 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, noteId: number) => {
+    setDraggedNoteId(noteId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, dropTargetId: number) => {
+    e.preventDefault();
+    
+    if (!draggedNoteId || draggedNoteId === dropTargetId) {
+      setDraggedNoteId(null);
+      return;
+    }
+
+    const draggedIndex = notes.findIndex(note => note.id === draggedNoteId);
+    const dropIndex = notes.findIndex(note => note.id === dropTargetId);
+
+    if (draggedIndex === -1 || dropIndex === -1) {
+      setDraggedNoteId(null);
+      return;
+    }
+
+    const newNotes = [...notes];
+    const [draggedNote] = newNotes.splice(draggedIndex, 1);
+    newNotes.splice(dropIndex, 0, draggedNote);
+
+    setNotes(newNotes);
+    setDraggedNoteId(null);
+
+    // TODO: Update the order in the backend if needed
+  };
+
+  const handleDragEnd = () => {
+    setDraggedNoteId(null);
+  };
+
   const openEditModal = (note: TaskNote) => {
     setEditingNote(note);
     setNewNoteContent(note.content);
@@ -121,7 +163,7 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => setShowAddForm(true)}
           className="text-xs"
         >
           <Plus className="w-3 h-3 mr-1" />
@@ -132,7 +174,17 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
       {notes.length > 0 && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {notes.map((note) => (
-            <Card key={note.id} className="bg-yellow-50 border-yellow-200">
+            <Card 
+              key={note.id} 
+              className={`bg-white border-gray-200 cursor-move transition-all ${
+                draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
+              }`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, note.id!)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, note.id!)}
+              onDragEnd={handleDragEnd}
+            >
               <CardContent className="p-3">
                 <div className="flex justify-between items-start">
                   <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
@@ -162,6 +214,41 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Inline Add Note Form */}
+      {showAddForm && (
+        <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <Textarea
+                value={newNoteContent}
+                onChange={(e) => setNewNoteContent(e.target.value)}
+                placeholder="Enter your note..."
+                className="border-blue-300 focus:border-blue-500 min-h-[80px]"
+              />
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewNoteContent('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={handleAddNote} 
+                  disabled={!newNoteContent.trim()}
+                >
+                  Save Note
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Add/Edit Note Modal */}

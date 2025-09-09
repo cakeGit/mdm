@@ -57,7 +57,7 @@ export function MomentumMeter({ className = '' }: MomentumMeterProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-orange-700 flex items-center">
           <TrendingUp className="w-4 h-4 mr-2" />
-          Momentum Meter
+          Progress Streak
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">

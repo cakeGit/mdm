@@ -19,12 +19,6 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       description: 'Project overview'
     },
     {
-      id: 'projects',
-      label: 'Projects',
-      icon: FolderOpen,
-      description: 'Manage projects'
-    },
-    {
       id: 'progress',
       label: 'Progress',
       icon: BarChart3,

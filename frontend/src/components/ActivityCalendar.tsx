@@ -67,12 +67,13 @@ export function ActivityCalendar() {
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
-  // Generate last 12 weeks (84 days) for display
+  // Generate last 6 months (approximately 180 days) for display
   const generateCalendarDays = () => {
     const days = [];
     const today = new Date();
     
-    for (let i = 83; i >= 0; i--) {
+    // Go back 6 months
+    for (let i = 179; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
@@ -83,6 +84,8 @@ export function ActivityCalendar() {
       days.push({
         date: dateStr,
         dayOfWeek: date.getDay(),
+        month: date.getMonth(),
+        dayOfMonth: date.getDate(),
         activity,
         level
       });
@@ -108,12 +111,40 @@ export function ActivityCalendar() {
   }
 
   const calendarDays = generateCalendarDays();
-  const weeks = [];
   
-  // Group days into weeks
-  for (let i = 0; i < calendarDays.length; i += 7) {
-    weeks.push(calendarDays.slice(i, i + 7));
+  // Group days by month for horizontal display
+  const monthGroups = [];
+  let currentMonth = -1;
+  let currentGroup = [];
+  
+  calendarDays.forEach(day => {
+    if (day.month !== currentMonth) {
+      if (currentGroup.length > 0) {
+        monthGroups.push({
+          month: currentMonth,
+          days: currentGroup
+        });
+      }
+      currentMonth = day.month;
+      currentGroup = [day];
+    } else {
+      currentGroup.push(day);
+    }
+  });
+  
+  // Add the last group
+  if (currentGroup.length > 0) {
+    monthGroups.push({
+      month: currentMonth,
+      days: currentGroup
+    });
   }
+
+  const getMonthName = (monthIndex: number) => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return monthNames[monthIndex];
+  };
 
   const totalSessions = activityData.reduce((sum, day) => sum + day.sessions, 0);
   const totalTime = activityData.reduce((sum, day) => sum + day.totalTime, 0);
@@ -145,32 +176,44 @@ export function ActivityCalendar() {
             </div>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="space-y-1">
-            {/* Day labels */}
-            <div className="grid grid-cols-7 gap-1 text-xs text-gray-500 mb-2">
-              <div>Sun</div>
-              <div>Mon</div>
-              <div>Tue</div>
-              <div>Wed</div>
-              <div>Thu</div>
-              <div>Fri</div>
-              <div>Sat</div>
+          {/* Calendar Grid - Horizontal by Month */}
+          <div className="space-y-2">
+            {/* Month Headers */}
+            <div className="flex space-x-1">
+              {monthGroups.map((group, index) => (
+                <div key={index} className="flex-1 text-center">
+                  <div className="text-xs text-gray-500 font-medium mb-1">
+                    {getMonthName(group.month)}
+                  </div>
+                </div>
+              ))}
             </div>
             
-            {/* Calendar weeks */}
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-cols-7 gap-1">
-                {week.map((day, dayIndex) => (
-                  <div
-                    key={dayIndex}
-                    className={`w-3 h-3 rounded-sm ${getIntensityColor(day.level)} cursor-pointer transition-all hover:scale-125`}
-                    title={
-                      day.activity 
-                        ? `${day.date}: ${day.activity.sessions} sessions, ${formatTime(day.activity.totalTime)}`
-                        : `${day.date}: No activity`
-                    }
-                  />
+            {/* Day grid - 7 rows for each day of week */}
+            {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
+              <div key={dayOfWeek} className="flex space-x-1 items-center">
+                {/* Day label */}
+                <div className="w-8 text-xs text-gray-500 text-right mr-2">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
+                </div>
+                
+                {/* Days for this day of week across all months */}
+                {monthGroups.map((group, monthIndex) => (
+                  <div key={monthIndex} className="flex-1 flex space-x-0.5">
+                    {group.days
+                      .filter(day => day.dayOfWeek === dayOfWeek)
+                      .map((day, dayIndex) => (
+                        <div
+                          key={dayIndex}
+                          className={`w-2.5 h-2.5 rounded-sm ${getIntensityColor(day.level)} cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
+                          title={
+                            day.activity 
+                              ? `${day.date}: ${day.activity.sessions} sessions, ${formatTime(day.activity.totalTime)}`
+                              : `${day.date}: No activity`
+                          }
+                        />
+                      ))}
+                  </div>
                 ))}
               </div>
             ))}
