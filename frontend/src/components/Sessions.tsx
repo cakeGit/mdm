@@ -49,6 +49,7 @@ export function SessionsView() {
   };
 
   const getTotalTime = () => {
+    if (!Array.isArray(sessions)) return 0;
     return sessions.reduce((total, session) => total + session.duration, 0);
   };
 
@@ -131,7 +132,7 @@ export function SessionsView() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {sessions.length === 0 ? (
+          {(!Array.isArray(sessions) || sessions.length === 0) ? (
             <div className="text-center py-12">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground mb-2">No sessions found</h3>
@@ -141,7 +142,7 @@ export function SessionsView() {
             </div>
           ) : (
             <div className="space-y-4">
-              {sessions.map((session) => (
+              {Array.isArray(sessions) && sessions.map((session) => (
                 <div
                   key={session.id}
                   className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
