@@ -26,6 +26,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [newStageDescription, setNewStageDescription] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [showCompactView, setShowCompactView] = useState(false);
   
   // Inline editing states
   const [editingProjectName, setEditingProjectName] = useState(false);
@@ -273,7 +274,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   };
 
   const renderStage = (stage: Stage) => {
-    const isExpanded = expandedStages.has(stage.id!);
+    const isExpanded = expandedStages.has(stage.id!) && !showCompactView;
     const completedTasks = stage.tasks?.filter(t => t.status === 'completed').length || 0;
     const totalTasks = stage.tasks?.length || 0;
 
@@ -593,10 +594,20 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Project Stages</h2>
-            <Button onClick={() => setShowNewStageForm(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Stage
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCompactView(!showCompactView)}
+                className="text-xs"
+              >
+                {showCompactView ? 'Expand All' : 'Compact View'}
+              </Button>
+              <Button onClick={() => setShowNewStageForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Stage
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-4">

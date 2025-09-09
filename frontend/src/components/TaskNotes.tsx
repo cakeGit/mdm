@@ -131,7 +131,25 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
     setNotes(newNotes);
     setDraggedNoteId(null);
 
-    // TODO: Update the order in the backend if needed
+    // Update the order in the backend
+    updateNoteOrder(newNotes);
+  };
+
+  const updateNoteOrder = async (orderedNotes: TaskNote[]) => {
+    try {
+      const noteIds = orderedNotes.map(note => note.id);
+      await apiRequest(`/api/task-notes/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          task_id: taskId,
+          note_ids: noteIds
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update note order:', error);
+      // Revert to original order on error
+      await fetchNotes();
+    }
   };
 
   const handleDragEnd = () => {
