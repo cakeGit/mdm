@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Progress } from '../src/components/Progress';
+import { ProgressView } from '../src/components/Progress';
 import { TaskNotes } from '../src/components/TaskNotes';
 import * as api from '../src/lib/api';
 
@@ -40,14 +40,14 @@ describe('Data Display and UI Improvements', () => {
     jest.clearAllMocks();
   });
 
-  describe('Progress Component Task Count Display', () => {
+  describe('ProgressView Component Task Count Display', () => {
     test('should display actual task counts in progress cards', async () => {
       mockApiRequest.mockResolvedValue({
         ok: true,
         json: async () => mockProgressData
       } as Response);
 
-      render(<Progress />);
+      render(<ProgressView />);
 
       await waitFor(() => {
         // Should show completed vs total tasks
@@ -67,7 +67,7 @@ describe('Data Display and UI Improvements', () => {
         json: async () => mockProgressData
       } as Response);
 
-      render(<Progress />);
+      render(<ProgressView />);
 
       await waitFor(() => {
         const progressBars = document.querySelectorAll('[data-testid="progress-bar"], .progress');
@@ -83,7 +83,7 @@ describe('Data Display and UI Improvements', () => {
         json: async () => mockProgressData
       } as Response);
 
-      render(<Progress />);
+      render(<ProgressView />);
 
       await waitFor(() => {
         expect(screen.getByText('Progress Streak')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('Data Display and UI Improvements', () => {
         json: async () => mockProgressData
       } as Response);
 
-      render(<Progress />);
+      render(<ProgressView />);
 
       await waitFor(() => {
         expect(screen.getByText('7')).toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('Data Display and UI Improvements', () => {
         json: async () => mockProgressData
       } as Response);
 
-      const { rerender } = render(<Progress />);
+      const { rerender } = render(<ProgressView />);
 
       // Initial render
       await waitFor(() => {
@@ -209,7 +209,7 @@ describe('Data Display and UI Improvements', () => {
       } as Response);
 
       // Rerender to simulate update
-      rerender(<Progress />);
+      rerender(<ProgressView />);
 
       await waitFor(() => {
         expect(screen.getByText('16 of 25 tasks')).toBeInTheDocument();
