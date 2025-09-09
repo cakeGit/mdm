@@ -55,6 +55,10 @@ function AppContent() {
     if (view !== 'project') {
       setSelectedProjectId(null);
     }
+    // Refresh projects data when navigating to dashboard
+    if (view === 'dashboard') {
+      fetchProjects();
+    }
   };
 
   const handleProjectSelect = (projectId: number) => {
@@ -65,6 +69,8 @@ function AppContent() {
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
     setSelectedProjectId(null);
+    // Refresh projects when returning to dashboard
+    fetchProjects();
   };
 
   const handleNewProject = () => {

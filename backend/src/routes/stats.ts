@@ -107,7 +107,7 @@ router.get('/progress', authenticateToken, (req: any, res) => {
                 // Calculate streak with 1-day grace period
                 // Get all unique dates with sessions, ordered descending
                 db.all(`
-                  SELECT DISTINCT DATE(ws.started_at) as session_date
+                  SELECT DISTINCT DATE(ws.started_at, 'localtime') as session_date
                   FROM work_sessions ws
                   JOIN projects p ON ws.project_id = p.id
                   WHERE p.user_id = ?
@@ -123,9 +123,9 @@ router.get('/progress', authenticateToken, (req: any, res) => {
                   currentDate.setHours(0, 0, 0, 0);
 
                   // Convert session dates to Date objects
-                  const dates = sessionDates.map((row: any) => new Date(row.session_date + 'T00:00:00Z'));
+                  const dates = sessionDates.map((row: any) => new Date(row.session_date + 'T00:00:00'));
                   
-                  // Check if today has a session
+                  // Check if today has a session using local date comparison
                   const todayStr = currentDate.toISOString().split('T')[0];
                   const hasToday = dates.some(d => d.toISOString().split('T')[0] === todayStr);
                   

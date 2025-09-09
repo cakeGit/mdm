@@ -8,6 +8,8 @@ const router = express.Router();
 // GET /api/sessions - Get sessions with filtering
 router.get('/', authenticateToken, (req: any, res) => {
   const filter = req.query.filter as string;
+  const projectId = req.query.project_id as string;
+  const limit = req.query.limit as string;
   const db = getDatabase();
   
   let query = `
@@ -18,6 +20,12 @@ router.get('/', authenticateToken, (req: any, res) => {
   `;
   
   const params: any[] = [req.user.userId];
+  
+  // Add project filtering if specified
+  if (projectId) {
+    query += ` AND ws.project_id = ?`;
+    params.push(projectId);
+  }
   
   // Add date filtering based on filter parameter
   if (filter && filter !== 'all') {
@@ -35,6 +43,12 @@ router.get('/', authenticateToken, (req: any, res) => {
   }
   
   query += ` ORDER BY ws.started_at DESC`;
+  
+  // Add limit if specified
+  if (limit) {
+    query += ` LIMIT ?`;
+    params.push(parseInt(limit));
+  }
   
   db.all(query, params, (err, sessions) => {
     if (err) {

@@ -6,6 +6,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiRequest } from '@/lib/api';
 
+const colorOptions = [
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green', value: '#10b981' },
+  { name: 'Purple', value: '#8b5cf6' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Indigo', value: '#6366f1' },
+  { name: 'Teal', value: '#14b8a6' },
+  { name: 'Yellow', value: '#eab308' },
+  { name: 'Gray', value: '#6b7280' },
+];
+
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -83,27 +96,22 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="color" className="text-sm font-semibold text-gray-700">Project Color</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  id="color"
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-16 h-12 rounded-xl border-2 border-gray-200 cursor-pointer shadow-sm hover:shadow-md transition-all duration-200"
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none',
-                    borderRadius: '12px'
-                  }}
-                />
-                <Input
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  placeholder="#6366f1"
-                  className="flex-1 border-2 rounded-xl py-3 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                />
+              <Label className="text-sm font-semibold text-gray-700">Project Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {colorOptions.map((colorOption) => (
+                  <button
+                    key={colorOption.value}
+                    type="button"
+                    className={`w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 ${
+                      formData.color === colorOption.value 
+                        ? 'border-gray-800 shadow-lg' 
+                        : 'border-gray-300 hover:border-gray-500'
+                    }`}
+                    style={{ backgroundColor: colorOption.value }}
+                    onClick={() => setFormData({ ...formData, color: colorOption.value })}
+                    title={colorOption.name}
+                  />
+                ))}
               </div>
             </div>
             

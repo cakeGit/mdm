@@ -28,6 +28,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [showCompactView, setShowCompactView] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<any[]>([]);
   
   // Inline editing states
   const [editingProjectName, setEditingProjectName] = useState(false);
@@ -46,6 +47,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
 
   useEffect(() => {
     fetchProject();
+    fetchRecentSessions();
   }, [projectId]);
 
   const fetchProject = async () => {
@@ -57,6 +59,16 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       console.error('Failed to fetch project:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentSessions = async () => {
+    try {
+      const response = await apiRequest(`/api/sessions?project_id=${projectId}&limit=5`);
+      const sessions = await response.json();
+      setRecentSessions(sessions);
+    } catch (error) {
+      console.error('Failed to fetch recent sessions:', error);
     }
   };
 
@@ -259,6 +271,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         body: JSON.stringify({ status }),
       });
       fetchProject(); // Refresh the project data
+      fetchRecentSessions(); // Refresh recent sessions
     } catch (error) {
       console.error('Failed to update task:', error);
     }
@@ -921,7 +934,30 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <CardTitle>Recent Sessions</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">No recent work sessions</p>
+              {recentSessions.length > 0 ? (
+                <div className="space-y-2">
+                  {recentSessions.map((session: any) => (
+                    <div key={session.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="text-sm font-medium">
+                          {Math.floor(session.duration / 60)} minutes
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(session.started_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(session.started_at).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No recent work sessions</p>
+              )}
             </CardContent>
           </Card>
         </div>

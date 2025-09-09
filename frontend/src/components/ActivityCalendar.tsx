@@ -67,16 +67,21 @@ export function ActivityCalendar() {
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
-  // Generate last 48 weeks for continuous display
+  // Generate last 48 weeks for continuous display, but don't show future dates
   const generateCalendarDays = () => {
     const days = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
     const daysToShow = 48 * 7; // 48 weeks = 336 days
     
     // Go back 48 weeks
     for (let i = daysToShow - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
+      
+      // Skip dates that are in the future
+      if (date > today) continue;
+      
       const dateStr = date.toISOString().split('T')[0];
       
       const activity = activityData.find(a => a.date === dateStr);
@@ -127,7 +132,7 @@ export function ActivityCalendar() {
     const weekDays = calendarDays.slice(i, i + 7);
     const firstDay = weekDays[0];
     
-    // Check if this week starts a new month
+    // Check if this week starts a new month or if it's the first week
     const isNewMonth = i === 0 || 
       (i > 0 && calendarDays[i - 1].month !== firstDay.month);
     
@@ -168,12 +173,12 @@ export function ActivityCalendar() {
             </div>
           </div>
 
-          {/* Calendar Grid - Continuous horizontal by week */}
-          <div className="space-y-1">
+          {/* Calendar Grid - Continuous horizontal by week - centered */}
+          <div className="space-y-1 flex flex-col items-center">
             {/* Month labels positioned above weeks where months start */}
-            <div className="flex">
+            <div className="flex justify-center w-full max-w-4xl">
               {weekGroups.map((week, index) => (
-                <div key={index} className="flex-1 min-w-[14px]">
+                <div key={index} className="flex-1 min-w-[14px] max-w-[20px]">
                   {week.monthLabel && (
                     <div className="text-xs text-gray-500 font-medium text-center mb-1">
                       {week.monthLabel}
@@ -183,37 +188,39 @@ export function ActivityCalendar() {
               ))}
             </div>
             
-            {/* Day grid - 7 rows for each day of week */}
-            {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
-              <div key={dayOfWeek} className="flex items-center">
-                {/* Day label */}
-                <div className="w-8 text-xs text-gray-500 text-right mr-2">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
+            {/* Day grid - 7 rows for each day of week - centered */}
+            <div className="w-full max-w-4xl">
+              {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
+                <div key={dayOfWeek} className="flex items-center justify-center">
+                  {/* Day label */}
+                  <div className="w-8 text-xs text-gray-500 text-right mr-2">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
+                  </div>
+                  
+                  {/* Days for this day of week across all weeks */}
+                  <div className="flex flex-1 gap-0.5 justify-center">
+                    {weekGroups.map((week, weekIndex) => {
+                      const dayForThisWeekday = week.days.find(day => day.dayOfWeek === dayOfWeek);
+                      return (
+                        <div
+                          key={weekIndex}
+                          className={`w-2.5 h-2.5 rounded-sm ${
+                            dayForThisWeekday ? getIntensityColor(dayForThisWeekday.level) : 'bg-gray-100'
+                          } cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
+                          title={
+                            dayForThisWeekday && dayForThisWeekday.activity 
+                              ? `${dayForThisWeekday.date}: ${dayForThisWeekday.activity.sessions} sessions, ${formatTime(dayForThisWeekday.activity.totalTime)}`
+                              : dayForThisWeekday 
+                                ? `${dayForThisWeekday.date}: No activity`
+                                : ''
+                          }
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-                
-                {/* Days for this day of week across all weeks */}
-                <div className="flex flex-1 gap-0.5">
-                  {weekGroups.map((week, weekIndex) => {
-                    const dayForThisWeekday = week.days.find(day => day.dayOfWeek === dayOfWeek);
-                    return (
-                      <div
-                        key={weekIndex}
-                        className={`w-2.5 h-2.5 rounded-sm ${
-                          dayForThisWeekday ? getIntensityColor(dayForThisWeekday.level) : 'bg-gray-100'
-                        } cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
-                        title={
-                          dayForThisWeekday && dayForThisWeekday.activity 
-                            ? `${dayForThisWeekday.date}: ${dayForThisWeekday.activity.sessions} sessions, ${formatTime(dayForThisWeekday.activity.totalTime)}`
-                            : dayForThisWeekday 
-                              ? `${dayForThisWeekday.date}: No activity`
-                              : ''
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Legend */}
