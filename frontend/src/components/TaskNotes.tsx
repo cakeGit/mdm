@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, StickyNote } from 'lucide-react';
+import { Plus, Edit, Trash2, StickyNote, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,10 +10,11 @@ import { apiRequest } from '@/lib/api';
 
 interface TaskNotesProps {
   taskId: number;
+  collapsible?: boolean;
   onNotesChange?: (count: number) => void;
 }
 
-export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
+export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNotesProps) {
   const [notes, setNotes] = useState<TaskNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -23,6 +24,7 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
   const [draggedNoteId, setDraggedNoteId] = useState<number | null>(null);
   const [dragOverNoteId, setDragOverNoteId] = useState<number | null>(null);
   const [insertPosition, setInsertPosition] = useState<'before' | 'after' | null>(null);
+  const [isExpanded, setIsExpanded] = useState(!collapsible);
 
   useEffect(() => {
     fetchNotes();
@@ -217,113 +219,125 @@ export function TaskNotes({ taskId, onNotesChange }: TaskNotesProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 mt-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800 p-1"
+        >
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           <StickyNote className="w-4 h-4" />
           <span>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowAddForm(true)}
-          className="text-xs"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Add Note
         </Button>
+        {isExpanded && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAddForm(true)}
+            className="text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add Note
+          </Button>
+        )}
       </div>
 
-      {notes.length > 0 && (
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {notes.map((note, index) => (
-            <div key={note.id} className="relative">
-              {/* Insert position indicator - before */}
-              {dragOverNoteId === note.id && insertPosition === 'before' && (
-                <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
-              )}
-              
-              <Card 
-                className={`bg-white border-gray-200 cursor-move transition-all ${
-                  draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
-                } ${dragOverNoteId === note.id ? 'ring-2 ring-blue-300' : ''}`}
-                draggable
-                onDragStart={(e) => handleDragStart(e, note.id!)}
-                onDragOver={(e) => handleDragOver(e, note.id!)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, note.id!)}
-                onDragEnd={handleDragEnd}
-              >
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEditModal(note)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteNote(note.id!)}
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(note.created_at!).toLocaleDateString()}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Insert position indicator - after */}
-              {dragOverNoteId === note.id && insertPosition === 'after' && (
-                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
-              )}
+      {isExpanded && (
+        <>
+          {notes.length > 0 && (
+            <div className="space-y-2">
+              {notes.map((note, index) => (
+                <div key={note.id} className="relative">
+                  {/* Insert position indicator - before */}
+                  {dragOverNoteId === note.id && insertPosition === 'before' && (
+                    <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                  )}
+                  
+                  <Card 
+                    className={`bg-white border-gray-200 cursor-move transition-all ${
+                      draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
+                    } ${dragOverNoteId === note.id ? 'ring-2 ring-blue-300' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, note.id!)}
+                    onDragOver={(e) => handleDragOver(e, note.id!)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, note.id!)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
+                        <div className="flex space-x-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEditModal(note)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteNote(note.id!)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {new Date(note.created_at!).toLocaleDateString()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Insert position indicator - after */}
+                  {dragOverNoteId === note.id && insertPosition === 'after' && (
+                    <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Inline Add Note Form */}
-      {showAddForm && (
-        <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <Textarea
-                value={newNoteContent}
-                onChange={(e) => setNewNoteContent(e.target.value)}
-                placeholder="Enter your note..."
-                className="border-blue-300 focus:border-blue-500 min-h-[80px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setNewNoteContent('');
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={handleAddNote} 
-                  disabled={!newNoteContent.trim()}
-                >
-                  Save Note
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Inline Add Note Form */}
+          {showAddForm && (
+            <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <Textarea
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    placeholder="Enter your note..."
+                    className="border-blue-300 focus:border-blue-500 min-h-[80px]"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setNewNoteContent('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={handleAddNote} 
+                      disabled={!newNoteContent.trim()}
+                    >
+                      Save Note
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Add/Edit Note Modal */}

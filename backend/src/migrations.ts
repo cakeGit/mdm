@@ -23,6 +23,19 @@ export function initMigrations() {
         executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Create schema_version table to track current version
+    db.run(`
+      CREATE TABLE IF NOT EXISTS schema_version (
+        version INTEGER PRIMARY KEY,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Initialize version if not exists
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version) VALUES (0)
+    `);
   });
 }
 
@@ -114,8 +127,20 @@ export function executeMigration(migration: Migration): Promise<void> {
                 db.run('ROLLBACK');
                 reject(err);
               } else {
-                db.run('COMMIT');
-                resolve();
+                // Update schema version
+                db.run(
+                  'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP',
+                  [migration.id],
+                  (err) => {
+                    if (err) {
+                      db.run('ROLLBACK');
+                      reject(err);
+                    } else {
+                      db.run('COMMIT');
+                      resolve();
+                    }
+                  }
+                );
               }
             }
           );
@@ -154,4 +179,33 @@ export async function runMigrations() {
   }
   
   console.log('All migrations completed successfully');
+}
+
+export function getCurrentSchemaVersion(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const db = getDatabase();
+    
+    // Check if schema_version table exists
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'", (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      // If table doesn't exist, return 0
+      if (!row) {
+        resolve(0);
+        return;
+      }
+      
+      // Get current version
+      db.get('SELECT version FROM schema_version LIMIT 1', (err, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row ? row.version : 0);
+        }
+      });
+    });
+  });
 }

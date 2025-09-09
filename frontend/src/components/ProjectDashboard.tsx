@@ -3,6 +3,7 @@ import { Plus, Edit, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { SegmentedProgressBar } from '@/components/SegmentedProgressBar';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { MomentumMeter } from '@/components/MomentumMeter';
 import { AutoRolloverTasks } from '@/components/AutoRolloverTasks';
@@ -152,13 +153,20 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                     <span className="font-medium text-foreground">Progress</span>
                     <span className="text-muted-foreground">{project.completed_tasks || 0}/{project.total_tasks || 0} tasks</span>
                   </div>
-                  <Progress 
-                    value={project.progress || 0} 
-                    className="h-2 group-hover:h-3 transition-all duration-200"
-                    style={{
-                      backgroundColor: `${project.color}20`,
-                    }}
-                  />
+                  {project.stageProgress && project.stageProgress.length > 0 ? (
+                    <SegmentedProgressBar 
+                      stageProgress={project.stageProgress} 
+                      className="h-3"
+                    />
+                  ) : (
+                    <Progress 
+                      value={project.progress || 0} 
+                      className="h-2 group-hover:h-3 transition-all duration-200 border border-gray-300"
+                      style={{
+                        backgroundColor: `${project.color}20`,
+                      }}
+                    />
+                  )}
                 </div>
                 
                 {/* Suggested Next Task */}

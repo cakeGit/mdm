@@ -39,6 +39,11 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [tempStageName, setTempStageName] = useState('');
   const [tempTaskTitle, setTempTaskTitle] = useState('');
 
+  // Task dragging states
+  const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<number | null>(null);
+  const [taskInsertPosition, setTaskInsertPosition] = useState<'before' | 'after' | null>(null);
+
   useEffect(() => {
     fetchProject();
   }, [projectId]);
@@ -274,6 +279,118 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     }
   };
 
+  // Task dragging functions
+  const handleTaskDragStart = (e: React.DragEvent, taskId: number) => {
+    setDraggedTaskId(taskId);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  };
+
+  const handleTaskDragOver = (e: React.DragEvent, taskId: number) => {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    if (!draggedTaskId || draggedTaskId === taskId) return;
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position = e.clientY < midY ? 'before' : 'after';
+    
+    setDragOverTaskId(taskId);
+    setTaskInsertPosition(position);
+  };
+
+  const handleTaskDragLeave = (e: React.DragEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || 
+        e.clientY < rect.top || e.clientY > rect.bottom) {
+      setDragOverTaskId(null);
+      setTaskInsertPosition(null);
+    }
+  };
+
+  const handleTaskDrop = async (e: React.DragEvent, dropTargetId: number, stageId: number) => {
+    e.preventDefault();
+    
+    if (!draggedTaskId || draggedTaskId === dropTargetId || !taskInsertPosition) {
+      setDraggedTaskId(null);
+      setDragOverTaskId(null);
+      setTaskInsertPosition(null);
+      return;
+    }
+
+    // Find stage that contains the tasks
+    const stage = project?.stages?.find(s => s.id === stageId);
+    if (!stage?.tasks) return;
+
+    const draggedIndex = stage.tasks.findIndex(task => task.id === draggedTaskId);
+    const dropIndex = stage.tasks.findIndex(task => task.id === dropTargetId);
+
+    if (draggedIndex === -1 || dropIndex === -1) {
+      setDraggedTaskId(null);
+      setDragOverTaskId(null);
+      setTaskInsertPosition(null);
+      return;
+    }
+
+    const newTasks = [...stage.tasks];
+    const [draggedTask] = newTasks.splice(draggedIndex, 1);
+    
+    // Calculate the actual insert position
+    let insertIndex = dropIndex;
+    if (taskInsertPosition === 'after') {
+      insertIndex = dropIndex + 1;
+    }
+    // If dragged task was before the drop target, adjust insert index
+    if (draggedIndex < dropIndex && taskInsertPosition === 'before') {
+      insertIndex = dropIndex - 1;
+    }
+
+    newTasks.splice(insertIndex, 0, draggedTask);
+
+    // Update local state immediately for smooth UX
+    setProject(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        stages: prev.stages?.map(s => 
+          s.id === stageId 
+            ? { ...s, tasks: newTasks }
+            : s
+        ) || []
+      };
+    });
+
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+    setTaskInsertPosition(null);
+
+    // Update the order in the backend
+    try {
+      const taskIds = newTasks.map(task => task.id);
+      await apiRequest(`/api/tasks/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          stage_id: stageId,
+          task_ids: taskIds
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update task order:', error);
+      // Revert to original order on error
+      await fetchProject();
+    }
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+    setTaskInsertPosition(null);
+  };
+
   const renderStage = (stage: Stage) => {
     const isExpanded = expandedStages.has(stage.id!) && !showCompactView;
     const completedTasks = stage.tasks?.filter(t => t.status === 'completed').length || 0;
@@ -335,7 +452,23 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             {stage.tasks && stage.tasks.length > 0 ? (
               <div className="space-y-2">
                 {stage.tasks.map((task) => (
-                  <div key={task.id} className={`p-3 rounded border ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`}>
+                  <div key={task.id} className="relative">
+                    {/* Insert position indicator - before */}
+                    {dragOverTaskId === task.id && taskInsertPosition === 'before' && (
+                      <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                    )}
+                    
+                    <div 
+                      className={`p-3 rounded border cursor-move transition-all ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''} ${
+                        draggedTaskId === task.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
+                      } ${dragOverTaskId === task.id ? 'ring-2 ring-blue-300' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleTaskDragStart(e, task.id!)}
+                      onDragOver={(e) => handleTaskDragOver(e, task.id!)}
+                      onDragLeave={handleTaskDragLeave}
+                      onDrop={(e) => handleTaskDrop(e, task.id!, stage.id!)}
+                      onDragEnd={handleTaskDragEnd}
+                    >
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col gap-1">
                         {task.status !== 'completed' && (
@@ -393,14 +526,11 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                           <p className="text-sm mt-1">{task.description}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <span className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            Priority: {task.priority === 1 ? 'High' : task.priority === 2 ? 'Medium' : 'Low'}
-                          </span>
+                          {/* Removed priority display as requested */}
                         </div>
                         
-                        {/* Task Notes */}
-                        <div className="mt-3">
-                          <TaskNotes taskId={task.id!} />
+                        {/* Task Notes - now collapsible */}
+                        <TaskNotes taskId={task.id!} collapsible={true} />
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
@@ -417,6 +547,11 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                         </Button>
                       </div>
                     </div>
+                    
+                    {/* Insert position indicator - after */}
+                    {dragOverTaskId === task.id && taskInsertPosition === 'after' && (
+                      <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                    )}
                   </div>
                 ))}
               </div>

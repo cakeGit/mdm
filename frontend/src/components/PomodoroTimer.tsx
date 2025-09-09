@@ -138,7 +138,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
 
   return (
     <>
-      <Card className={`${isMinimal ? '' : 'fixed bottom-4 right-4'} shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50 ${isCollapsed ? 'p-0 flex items-center justify-center' : isMinimal ? 'w-full' : 'w-96'}`}>
+      <Card className={`${isMinimal ? '' : 'fixed bottom-4 right-4'} shadow-2xl border-2 rounded-xl bg-gradient-to-br from-white to-gray-50 ${isCollapsed ? 'p-0 flex items-center justify-center' : isMinimal ? 'w-full' : 'w-[28rem]'}`}>
       {isCollapsed ? (
         <Button
           variant="ghost"

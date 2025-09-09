@@ -130,6 +130,65 @@ router.post('/', authenticateToken, (req: any, res) => {
   });
 });
 
+// PUT /api/tasks/reorder - Reorder tasks within a stage
+router.put('/reorder', authenticateToken, (req: any, res) => {
+  const { stage_id, task_ids } = req.body;
+  
+  if (!stage_id || !Array.isArray(task_ids)) {
+    return res.status(400).json({ error: 'Stage ID and task IDs array are required' });
+  }
+  
+  const db = getDatabase();
+  
+  // First verify the stage belongs to a project owned by the user
+  db.get(`
+    SELECT s.id FROM stages s
+    JOIN projects p ON s.project_id = p.id
+    WHERE s.id = ? AND p.user_id = ?
+  `, [stage_id, req.user.userId], (err, stage) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (!stage) {
+      return res.status(404).json({ error: 'Stage not found' });
+    }
+    
+    // Update sort_order for each task
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      let completed = 0;
+      let errors = false;
+      
+      task_ids.forEach((taskId: number, index: number) => {
+        db.run(
+          'UPDATE tasks SET sort_order = ? WHERE id = ? AND stage_id = ?',
+          [index, taskId, stage_id],
+          function(err) {
+            if (err) {
+              errors = true;
+              console.error('Failed to update task order:', err);
+            }
+            
+            completed++;
+            
+            if (completed === task_ids.length) {
+              if (errors) {
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Failed to update task order' });
+              } else {
+                db.run('COMMIT');
+                res.json({ success: true });
+              }
+            }
+          }
+        );
+      });
+    });
+  });
+});
+
 export default router;
 
 // GET /api/tasks/pinned - Get user's pinned tasks
