@@ -115,6 +115,12 @@ export function ActivityCalendar() {
 
   const calendarDays = generateCalendarDays();
   
+  const getMonthName = (monthIndex: number) => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return monthNames[monthIndex];
+  };
+  
   // Group days by week for continuous horizontal display
   const weekGroups = [];
   for (let i = 0; i < calendarDays.length; i += 7) {
@@ -131,12 +137,6 @@ export function ActivityCalendar() {
       monthLabel: isNewMonth ? getMonthName(firstDay.month) : null
     });
   }
-
-  const getMonthName = (monthIndex: number) => {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return monthNames[monthIndex];
-  };
 
   const totalSessions = activityData.reduce((sum, day) => sum + day.sessions, 0);
   const totalTime = activityData.reduce((sum, day) => sum + day.totalTime, 0);

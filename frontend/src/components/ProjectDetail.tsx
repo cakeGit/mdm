@@ -767,25 +767,6 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     </CardContent>
                   </Card>
                 )}
-                              setShowNewStageForm(false);
-                              setNewStageName('');
-                              setNewStageDescription('');
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={handleAddStage} 
-                            disabled={!newStageName.trim()}
-                          >
-                            Save Stage
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             )}
           </div>
