@@ -26,6 +26,16 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const [newStageDescription, setNewStageDescription] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  
+  // Inline editing states
+  const [editingProjectName, setEditingProjectName] = useState(false);
+  const [editingProjectDescription, setEditingProjectDescription] = useState(false);
+  const [editingStage, setEditingStage] = useState<number | null>(null);
+  const [editingTask, setEditingTask] = useState<number | null>(null);
+  const [tempProjectName, setTempProjectName] = useState('');
+  const [tempProjectDescription, setTempProjectDescription] = useState('');
+  const [tempStageName, setTempStageName] = useState('');
+  const [tempTaskTitle, setTempTaskTitle] = useState('');
 
   useEffect(() => {
     fetchProject();
@@ -97,6 +107,57 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       fetchProject(); // Refresh project data
     } catch (error) {
       console.error('Failed to add task:', error);
+    }
+  };
+
+  // Inline editing handlers
+  const startEditingProjectName = () => {
+    setTempProjectName(project?.name || '');
+    setEditingProjectName(true);
+  };
+
+  const startEditingProjectDescription = () => {
+    setTempProjectDescription(project?.description || '');
+    setEditingProjectDescription(true);
+  };
+
+  const saveProjectName = async () => {
+    if (!tempProjectName.trim() || tempProjectName === project?.name) {
+      setEditingProjectName(false);
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tempProjectName.trim() })
+      });
+      
+      setEditingProjectName(false);
+      fetchProject();
+    } catch (error) {
+      console.error('Failed to update project name:', error);
+    }
+  };
+
+  const saveProjectDescription = async () => {
+    if (tempProjectDescription === project?.description) {
+      setEditingProjectDescription(false);
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: tempProjectDescription.trim() })
+      });
+      
+      setEditingProjectDescription(false);
+      fetchProject();
+    } catch (error) {
+      console.error('Failed to update project description:', error);
     }
   };
 
@@ -331,6 +392,12 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     return <div className="p-8">Project not found</div>;
   }
 
+  // Calculate task statistics
+  const allTasks = project.stages?.flatMap(stage => stage.tasks || []) || [];
+  const totalTasks = allTasks.length;
+  const completedTasks = allTasks.filter(task => task.status === 'completed').length;
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
   return (
     <div className="p-8">
       <div className="flex items-center gap-4 mb-6">
@@ -348,9 +415,46 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               style={{ backgroundColor: project.color || '#6366f1' }}
             />
             <div>
-              <h1 className="text-3xl font-bold">{project.name}</h1>
-              {project.description && (
-                <p className="text-muted-foreground mt-1">{project.description}</p>
+              {editingProjectName ? (
+                <Input
+                  value={tempProjectName}
+                  onChange={(e) => setTempProjectName(e.target.value)}
+                  onBlur={saveProjectName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveProjectName();
+                    if (e.key === 'Escape') setEditingProjectName(false);
+                  }}
+                  className="text-3xl font-bold h-auto p-0 border-none shadow-none focus:ring-0"
+                  autoFocus
+                />
+              ) : (
+                <h1 
+                  className="text-3xl font-bold cursor-pointer hover:bg-gray-100 rounded px-1 transition-colors"
+                  onClick={startEditingProjectName}
+                >
+                  {project.name}
+                </h1>
+              )}
+              {editingProjectDescription ? (
+                <Input
+                  value={tempProjectDescription}
+                  onChange={(e) => setTempProjectDescription(e.target.value)}
+                  onBlur={saveProjectDescription}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveProjectDescription();
+                    if (e.key === 'Escape') setEditingProjectDescription(false);
+                  }}
+                  className="text-muted-foreground mt-1 h-auto p-0 border-none shadow-none focus:ring-0"
+                  placeholder="Click to add description..."
+                  autoFocus
+                />
+              ) : (
+                <p 
+                  className="text-muted-foreground mt-1 cursor-pointer hover:bg-gray-100 rounded px-1 transition-colors"
+                  onClick={startEditingProjectDescription}
+                >
+                  {project.description || 'Click to add description...'}
+                </p>
               )}
             </div>
           </div>
@@ -373,9 +477,9 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
           <div className="flex-1">
             <div className="flex justify-between text-sm mb-1">
               <span>Overall Progress</span>
-              <span>{project.completed_tasks}/{project.total_tasks} tasks</span>
+              <span>{completedTasks}/{totalTasks} tasks</span>
             </div>
-            <Progress value={project.progress} className="h-3" />
+            <Progress value={progressPercentage} className="h-3" />
           </div>
         </div>
       </div>

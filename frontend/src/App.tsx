@@ -9,7 +9,6 @@ import { ProgressView } from './components/Progress';
 import { SessionsView } from './components/Sessions';
 import { NewProjectModal } from './components/NewProjectModal';
 import { QuickAddTask } from './components/QuickAddTask';
-import { FocusMode } from './components/FocusMode';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { Project } from './types';
 import { apiRequest } from './lib/api';
@@ -24,7 +23,6 @@ function AppContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showQuickAddTask, setShowQuickAddTask] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
 
   // Global hotkeys
@@ -149,17 +147,6 @@ function AppContent() {
         isOpen={showQuickAddTask}
         onClose={() => setShowQuickAddTask(false)}
         onTaskAdded={fetchProjects}
-      />
-      
-      <FocusMode
-        projectId={selectedProjectId}
-        isActive={focusMode}
-        onToggle={() => setFocusMode(!focusMode)}
-        onExit={() => {
-          setFocusMode(false);
-          setCurrentView('dashboard');
-          setSelectedProjectId(null);
-        }}
       />
     </Layout>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, Square, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Pause, Square, ChevronDown, ChevronUp, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FocusRecap } from '@/components/FocusRecap';
@@ -21,6 +21,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [showRecap, setShowRecap] = useState(false);
   const [completedSession, setCompletedSession] = useState<any>(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   // Update selected project when currentProjectId changes
   useEffect(() => {
@@ -103,6 +104,26 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
         console.error('Failed to save session:', error);
       }
     }
+  };
+
+  const getRandomQuote = () => {
+    const quotes = [
+      "Focus is the art of knowing what to ignore.",
+      "The successful warrior is the average man with laser-like focus.", 
+      "Concentration is the secret of strength.",
+      "You can't hit a target you can't see.",
+      "What we focus on, we create more of.",
+      "Focus like a laser, not a flashlight.",
+      "Distraction is the enemy of vision.",
+      "Focus is pulling back the bow; relaxation is letting go the arrow.",
+      "I once debugged code for 3 days straight. Turns out I forgot a semicolon.", // Fake/outlandish
+      "Einstein said focus is everything, but he never had to deal with notifications.", // Fake
+      "The ancient Romans invented focus mode when they removed Twitter from their tablets.", // Fake/outlandish
+      "Studies show 87.3% of statistics about focus are made up on the spot.", // Fake
+      "Focus is like pizza - even when it's bad, it's still pretty good.", // Outlandish
+      "Confucius say: Focus without wifi is like car without gas - technically possible but really inconvenient." // Fake/outlandish
+    ];
+    return quotes[Math.floor(Math.random() * quotes.length)];
   };
 
   return (
@@ -216,6 +237,20 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
                     <Square className="mr-2 h-4 w-4" />
                     Reset
                   </Button>
+                  
+                  <Button 
+                    onClick={() => setFocusMode(!focusMode)} 
+                    size="sm" 
+                    variant={focusMode ? "default" : "outline"}
+                    className={`border-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 rounded-full px-6 ${
+                      focusMode 
+                        ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700' 
+                        : 'border-purple-400 text-purple-600 hover:bg-purple-50'
+                    }`}
+                  >
+                    <Target className="mr-2 h-4 w-4" />
+                    Focus Mode
+                  </Button>
                 </div>
               </div>
 
@@ -236,6 +271,46 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
         </>
       )}
       </Card>
+      
+      {/* Focus Mode Overlay */}
+      {focusMode && (
+        <div className="fixed inset-0 bg-white bg-opacity-95 z-40 flex items-center justify-center">
+          <div className="max-w-2xl w-full mx-4">
+            <div className="text-center space-y-8">
+              {/* Random motivational quote */}
+              <div className="space-y-4">
+                <div className="text-6xl">🎯</div>
+                <blockquote className="text-xl font-light text-gray-600 italic">
+                  {getRandomQuote()}
+                </blockquote>
+              </div>
+
+              {/* Current task info */}
+              {selectedProjectId && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Current Focus</h3>
+                  <div className="text-sm text-gray-600">
+                    Project: {projects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
+                  </div>
+                  <div className="mt-4 text-2xl font-mono font-bold text-gray-800">
+                    {formatTime(timeLeft)}
+                  </div>
+                </div>
+              )}
+
+              {/* Exit focus mode */}
+              <Button 
+                onClick={() => setFocusMode(false)}
+                variant="outline"
+                size="lg"
+                className="border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                Exit Focus Mode
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <FocusRecap
         isOpen={showRecap}
