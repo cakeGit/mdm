@@ -3,7 +3,8 @@ import { Play, Pause, Square, ChevronDown, ChevronUp, Target } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FocusRecap } from '@/components/FocusRecap';
-import { Project } from '@/types';
+import { Project, Task } from '@/types';
+import { TaskCard } from './ProjectDetail/TaskCard';
 import { apiRequest } from '@/lib/api';
 
 interface PomodoroTimerProps {
@@ -22,6 +23,8 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
   const [showRecap, setShowRecap] = useState(false);
   const [completedSession, setCompletedSession] = useState<any>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [pinnedTasks, setPinnedTasks] = useState<Task[]>([]);
+  const [loadingPinned, setLoadingPinned] = useState(false);
 
   // Update selected project when currentProjectId changes
   useEffect(() => {
@@ -44,6 +47,13 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
 
     return () => clearInterval(interval);
   }, [isRunning, timeLeft]);
+
+  // when entering focus mode, fetch pinned tasks for the selected project
+  useEffect(() => {
+    if (focusMode && selectedProjectId) {
+      fetchPinnedTasks(selectedProjectId);
+    }
+  }, [focusMode, selectedProjectId]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -106,6 +116,38 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
     }
   };
 
+  const fetchPinnedTasks = async (projectId: number) => {
+    setLoadingPinned(true);
+    try {
+      const res = await apiRequest(`/api/projects/${projectId}`);
+      if (!res.ok) return setPinnedTasks([]);
+      const data = await res.json();
+      const stages = data.stages || [];
+      const allTasks: Task[] = stages.flatMap((s: any) => s.tasks || []);
+      const pinned = allTasks.filter(t => t.is_pinned);
+      setPinnedTasks(pinned);
+    } catch (err) {
+      console.error('Failed to fetch pinned tasks', err);
+      setPinnedTasks([]);
+    } finally {
+      setLoadingPinned(false);
+    }
+  };
+
+  const handleUpdateTaskFromFocus = async (taskId: number, data: Partial<Task>) => {
+    try {
+      await apiRequest(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      // refresh pinned list for current project
+      if (selectedProjectId) await fetchPinnedTasks(selectedProjectId);
+    } catch (err) {
+      console.error('Failed to update task from focus overlay', err);
+    }
+  };
+
   const getRandomQuote = () => {
     const quotes = [
       "Focus is the art of knowing what to ignore.",
@@ -129,7 +171,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       "Research shows that 94.7% of people who read this quote will immediately check their phone.", // Fake
       "The Buddha achieved enlightenment through focus. He also didn't have TikTok.", // Fake/outlandish
       "Focus: It's like meditation, but with more swearing at computers.", // Outlandish
-      "Ancient proverb: A focused mind is worth two in the notification center.", // Fake
+      "Ancient proverb: A focused mind is worth two in the notification center.", // Outlandish
       "Scientists recently proved that rubber ducks improve focus by 127%. The ducks were unavailable for comment.", // Outlandish
       "Focus is the art of ignoring everything except the thing you're supposed to be ignoring to focus on something else." // Outlandish
     ];
@@ -283,7 +325,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       </Card>
       
       {/* Focus Mode Overlay - positioned below the Pomodoro timer */}
-      {focusMode && (
+  {focusMode && (
         <div className="fixed inset-0 bg-white bg-opacity-98 z-30 pt-20">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="text-center space-y-8">
@@ -321,6 +363,36 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Pinned tasks (show in same form as stage list) */}
+              {selectedProjectId && (
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Pinned Tasks</h4>
+                  {loadingPinned ? (
+                    <p className="text-sm text-muted-foreground">Loading pinned tasks…</p>
+                  ) : pinnedTasks.length > 0 ? (
+                    <div className="space-y-2 max-w-4xl mx-auto">
+                      {pinnedTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          draggedTaskId={null}
+                          dragOverTaskId={null}
+                          taskInsertPosition={null}
+                          onDragStart={() => {}}
+                          onDragOver={() => {}}
+                          onDragLeave={() => {}}
+                          onDrop={() => {}}
+                          onDragEnd={() => {}}
+                          onUpdateTask={(taskId, data) => handleUpdateTaskFromFocus(taskId, data)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No pinned tasks for this project.</p>
+                  )}
                 </div>
               )}
 

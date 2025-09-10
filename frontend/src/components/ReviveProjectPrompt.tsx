@@ -27,8 +27,6 @@ export function ReviveProjectPrompt({ onProjectSelect, onRefresh }: ReviveProjec
       // Get projects that haven't been updated in the last 7 days and are active
       const now = new Date();
       const abandoned = projects.filter((project: Project) => {
-        if (project.status !== 'active') return false;
-        
         const lastUpdate = new Date(project.updated_at || project.created_at || now);
         const daysSinceUpdate = differenceInDays(now, lastUpdate);
         

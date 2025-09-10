@@ -3,7 +3,7 @@ export interface Project {
   name: string;
   description?: string;
   color?: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed';
+  // status property removed
   created_at?: string;
   updated_at?: string;
 }

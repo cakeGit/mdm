@@ -63,7 +63,7 @@ describe('Projects API', () => {
         name: projectData.name,
         description: projectData.description,
         color: projectData.color,
-        status: 'planning'
+  status: 'active'
       });
     });
 

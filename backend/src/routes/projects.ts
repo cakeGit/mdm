@@ -145,7 +145,7 @@ router.post('/', authenticateToken, (req: any, res) => {
       name,
       description,
       color: color || '#6366f1',
-      status: 'planning'
+  status: 'active'
     });
   });
 });

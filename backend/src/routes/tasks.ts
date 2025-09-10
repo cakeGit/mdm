@@ -196,7 +196,7 @@ router.get('/pinned', authenticateToken, (req: any, res) => {
   const db = getDatabase();
   
   db.all(`
-    SELECT t.*, s.name as stage_name, p.name as project_name, p.color as project_color
+    SELECT t.*, s.project_id as project_id, s.name as stage_name, p.name as project_name, p.color as project_color
     FROM tasks t
     JOIN stages s ON t.stage_id = s.id
     JOIN projects p ON s.project_id = p.id

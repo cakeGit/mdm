@@ -9,6 +9,20 @@ import { MomentumMeter } from '@/components/MomentumMeter';
 import { AutoRolloverTasks } from '@/components/AutoRolloverTasks';
 import { ReviveProjectPrompt } from '@/components/ReviveProjectPrompt';
 import { ProgressiveCelebrations } from '@/components/ProgressiveCelebrations';
+
+// Utility to darken a hex color by a given percent
+function darkenColor(hex: string, percent: number) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  // Parse r, g, b
+  let r = parseInt(hex.substring(0,2), 16);
+  let g = parseInt(hex.substring(2,4), 16);
+  let b = parseInt(hex.substring(4,6), 16);
+  r = Math.floor(r * (1 - percent));
+  g = Math.floor(g * (1 - percent));
+  b = Math.floor(b * (1 - percent));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
 import { Project } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -33,15 +47,7 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
   //   onRefresh();
   // }, [onRefresh]);
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'planning': return 'bg-blue-500';
-      case 'on-hold': return 'bg-yellow-500';
-      case 'completed': return 'bg-gray-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  // Removed status badge logic
 
   const handleEditProject = (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
@@ -121,25 +127,21 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
               className="card-bubbly cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fadeIn group"
               style={{ 
                 animationDelay: `${index * 100}ms`,
-                background: `linear-gradient(135deg, ${project.color}15 0%, ${project.color}05 100%)`
+                background: `linear-gradient(135deg, ${project.color}80 0%, ${project.color}40 100%)` // more prominent gradient
               }}
               onClick={() => onProjectSelect(project.id)}
             >
               <CardHeader className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">
-                    <div
-                      className="w-5 h-5 rounded-full border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-200"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <CardTitle className="text-xl font-bold text-foreground group-hover:text-blue-600 transition-colors duration-200">
+                    <CardTitle 
+                      className="text-xl font-bold group-hover:text-blue-600 transition-colors duration-200"
+                      style={{ color: darkenColor(project.color || '#333333', 0.4) }}
+                    >
                       {project.name}
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusBadgeColor(project.status)} group-hover:scale-105 transition-transform duration-200`}>
-                      {project.status}
-                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -150,15 +152,18 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                     </Button>
                   </div>
                 </div>
-                <CardDescription className="text-muted-foreground line-clamp-2">
+                <CardDescription 
+                  className="line-clamp-2"
+                  style={{ color: darkenColor(project.color || '#333333', 0.4) }}
+                >
                   {project.description || 'No description provided'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Progress</span>
-                      <span className="text-muted-foreground">{Math.round(progressPct)}%</span>
+                      <span className="font-medium" style={{ color: darkenColor(project.color || '#333333', 0.4) }}>Progress</span>
+                      <span style={{ color: darkenColor(project.color || '#333333', 0.4) }}>{Math.round(progressPct)}%</span>
                     </div>
                   {project.stageProgress && project.stageProgress.length > 0 ? (
                     <SegmentedProgressBar 
@@ -179,12 +184,12 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                 {/* Suggested Next Task */}
                 {project.suggested_task && (
                   <div className="space-y-2 border-t pt-3">
-                    <div className="text-xs font-medium text-muted-foreground">Suggested Next Task</div>
+                    <div className="text-xs font-medium" style={{ color: darkenColor(project.color || '#333333', 0.4) }}>Suggested Next Task</div>
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
-                      <div className="text-sm font-medium text-blue-900 line-clamp-1">
+                      <div className="text-sm font-medium line-clamp-1" style={{ color: darkenColor(project.color || '#333333', 0.4) }}>
                         {project.suggested_task.title}
                       </div>
-                      <div className="text-xs text-blue-700 opacity-80 mt-1">
+                      <div className="text-xs opacity-80 mt-1" style={{ color: darkenColor(project.color || '#333333', 0.4) }}>
                         Priority: {project.suggested_task.priority === 1 ? 'High' : project.suggested_task.priority === 2 ? 'Medium' : 'Low'}
                       </div>
                       <button 
@@ -192,7 +197,8 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                           e.stopPropagation();
                           onProjectSelect(project.id);
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-2 hover:underline"
+                        className="text-xs font-medium mt-2 hover:underline"
+                        style={{ color: darkenColor(project.color || '#333333', 0.4) }}
                       >
                         🚀 Start Working
                       </button>
@@ -200,7 +206,7 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                   </div>
                 )}
                 
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <div className="flex justify-between items-center text-xs" style={{ color: darkenColor(project.color || '#333333', 0.4) }}>
                   <span>Last updated</span>
                   <span>{formatDistanceToNow(new Date(project.updated_at || 0), { addSuffix: true })}</span>
                 </div>
