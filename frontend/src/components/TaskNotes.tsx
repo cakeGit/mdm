@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, StickyNote, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskNote } from '@/types';
 import { apiRequest } from '@/lib/api';
@@ -25,10 +24,24 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
   const [dragOverNoteId, setDragOverNoteId] = useState<number | null>(null);
   const [insertPosition, setInsertPosition] = useState<'before' | 'after' | null>(null);
   const [isExpanded, setIsExpanded] = useState(!collapsible);
+  const modalTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     fetchNotes();
   }, [taskId]);
+
+  // When the add/edit modal opens, focus and select the textarea
+  useEffect(() => {
+    if (showAddModal || !!editingNote) {
+      // small timeout to ensure DOM is rendered
+      setTimeout(() => {
+        if (modalTextareaRef.current) {
+          modalTextareaRef.current.focus();
+          modalTextareaRef.current.select();
+        }
+      }, 0);
+    }
+  }, [showAddModal, editingNote]);
 
   const fetchNotes = async () => {
     try {
@@ -57,7 +70,8 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
 
       if (response.ok) {
         setNewNoteContent('');
-        setShowAddForm(false);
+  setShowAddForm(false);
+  setShowAddModal(false);
         await fetchNotes();
       }
     } catch (error) {
@@ -214,6 +228,18 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
     setNewNoteContent('');
   };
 
+  // Submit on Enter, allow newline with Shift+Enter inside modal textarea
+  const handleModalKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (editingNote) {
+        void handleEditNote();
+      } else {
+        void handleAddNote();
+      }
+    }
+  };
+
   if (loading) {
     return <div className="animate-pulse bg-gray-100 h-20 rounded"></div>;
   }
@@ -225,17 +251,38 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800 p-1"
+          className={`flex items-center text-sm text-gray-600 hover:text-gray-800 ${notes.length === 0 ? "h-6" : "p-1 space-x-2"}`}
         >
-          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          <StickyNote className="w-4 h-4" />
-          <span>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+          {notes.length === 0 ? (
+            // Compact clickable label for adding a note when there are none
+            <Button
+              size="tn"
+              variant="ghost"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                setShowAddForm(true);
+                setIsExpanded(true);
+              }}
+              className="text-xs text-gray-600 hover:text-blue-700"
+            >
+              Add note
+            </Button>
+          ) : (
+            <>
+              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <StickyNote className="w-4 h-4" />
+              <span>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+            </>
+          )}
         </Button>
-        {isExpanded && (
+        {isExpanded && notes.length > 0 && (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setShowAddForm(true);
+              setShowAddModal(true);
+            }}
             className="text-xs"
           >
             <Plus className="w-3 h-3 mr-1" />
@@ -248,7 +295,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
         <>
           {notes.length > 0 && (
             <div className="space-y-2">
-              {notes.map((note, index) => (
+              {notes.map((note) => (
                 <div key={note.id} className="relative">
                   {/* Insert position indicator - before */}
                   {dragOverNoteId === note.id && insertPosition === 'before' && (
@@ -342,7 +389,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
 
       {/* Add/Edit Note Modal */}
       <Dialog open={showAddModal || !!editingNote} onOpenChange={closeModal}>
-        <DialogContent>
+    <DialogContent className="bg-gray-50">
           <DialogHeader>
             <DialogTitle>{editingNote ? 'Edit Note' : 'Add Note'}</DialogTitle>
           </DialogHeader>
@@ -351,6 +398,9 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
               placeholder="Write your note here..."
               value={newNoteContent}
               onChange={(e) => setNewNoteContent(e.target.value)}
+              onKeyDown={handleModalKeyDown}
+              className="bg-gray-100"
+              ref={modalTextareaRef}
               rows={4}
             />
             <div className="flex justify-end space-x-2">

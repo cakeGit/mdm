@@ -14,7 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface ProjectDashboardProps {
   projects: Project[];
-  onProjectSelect: (projectId: number) => void;
+  onProjectSelect: (projectId: number | undefined) => void;
   onNewProject: () => void;
   onRefresh: () => void;
 }
@@ -195,7 +195,7 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                 
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>Last updated</span>
-                  <span>{formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}</span>
+                  <span>{formatDistanceToNow(new Date(project.updated_at || 0), { addSuffix: true })}</span>
                 </div>
               </CardContent>
             </Card>
