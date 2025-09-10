@@ -163,8 +163,8 @@ describe('New Features Tests', () => {
 
       const form = document.querySelector('.border-dashed');
       expect(form).toHaveClass('border-2');
-      expect(form).toHaveClass('border-blue-300');
-      expect(form).toHaveClass('bg-blue-50');
+      expect(form).toHaveClass('border-gray-300');
+      expect(form).toHaveClass('bg-gray-50');
     });
 
     test('cancel button clears form', async () => {

@@ -20,7 +20,7 @@ interface ProjectDashboardProps {
 }
 
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [celebration, setCelebration] = useState<{
     trigger: 'task' | 'stage' | 'project' | 'streak' | null;

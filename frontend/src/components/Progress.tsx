@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { MomentumMeter } from '@/components/MomentumMeter';
 import { ActivityCalendar } from '@/components/ActivityCalendar';
 import { apiRequest } from '@/lib/api';
-import { formatDistanceToNow } from 'date-fns';
+
 
 interface ProgressData {
   totalProjects: number;
@@ -53,7 +52,7 @@ export function ProgressView() {
     return <div className="p-8">Failed to load progress data</div>;
   }
 
-  const taskCompletion = data.totalTasks > 0 ? (data.completedTasks / data.totalTasks) * 100 : 0;
+  // Removed unused taskCompletion variable
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -68,18 +67,16 @@ export function ProgressView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-900">{data.totalProjects}</div>
-            <p className="text-xs text-blue-600">{data.activeProjects} active</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-green-700">Task Completion</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-700">Tasks Completed (Lifetime)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">{Math.round(taskCompletion)}%</div>
-            <p className="text-xs text-green-600">{data.completedTasks} of {data.totalTasks} tasks</p>
-            <Progress value={taskCompletion} className="mt-2 border border-green-300" />
+            <div className="text-2xl font-bold text-green-900">{data.completedTasks}</div>
+            <p className="text-xs text-green-600">lifetime</p>
           </CardContent>
         </Card>
 
@@ -120,9 +117,9 @@ export function ProgressView() {
                     <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.tasks}</span>
                     <span className="text-sm text-muted-foreground">this week</span>
                     {data.weeklyStats.thisWeek.tasks > data.weeklyStats.lastWeek.tasks ? (
-                      <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.tasks - data.weeklyStats.lastWeek.tasks}</span>
+                      <span className="text-green-600 text-sm"> {data.weeklyStats.thisWeek.tasks - data.weeklyStats.lastWeek.tasks}</span>
                     ) : data.weeklyStats.thisWeek.tasks < data.weeklyStats.lastWeek.tasks ? (
-                      <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.tasks - data.weeklyStats.thisWeek.tasks}</span>
+                      <span className="text-red-600 text-sm"> {data.weeklyStats.lastWeek.tasks - data.weeklyStats.thisWeek.tasks}</span>
                     ) : (
                       <span className="text-gray-600 text-sm">= same</span>
                     )}
@@ -135,9 +132,9 @@ export function ProgressView() {
                     <span className="text-lg font-semibold">{data.weeklyStats.thisWeek.sessions}</span>
                     <span className="text-sm text-muted-foreground">this week</span>
                     {data.weeklyStats.thisWeek.sessions > data.weeklyStats.lastWeek.sessions ? (
-                      <span className="text-green-600 text-sm">↑ {data.weeklyStats.thisWeek.sessions - data.weeklyStats.lastWeek.sessions}</span>
+                      <span className="text-green-600 text-sm"> {data.weeklyStats.thisWeek.sessions - data.weeklyStats.lastWeek.sessions}</span>
                     ) : data.weeklyStats.thisWeek.sessions < data.weeklyStats.lastWeek.sessions ? (
-                      <span className="text-red-600 text-sm">↓ {data.weeklyStats.lastWeek.sessions - data.weeklyStats.thisWeek.sessions}</span>
+                      <span className="text-red-600 text-sm"> {data.weeklyStats.lastWeek.sessions - data.weeklyStats.thisWeek.sessions}</span>
                     ) : (
                       <span className="text-gray-600 text-sm">= same</span>
                     )}
@@ -150,9 +147,9 @@ export function ProgressView() {
                     <span className="text-lg font-semibold">{formatTime(data.weeklyStats.thisWeek.time)}</span>
                     <span className="text-sm text-muted-foreground">this week</span>
                     {data.weeklyStats.thisWeek.time > data.weeklyStats.lastWeek.time ? (
-                      <span className="text-green-600 text-sm">↑ {formatTime(data.weeklyStats.thisWeek.time - data.weeklyStats.lastWeek.time)}</span>
+                      <span className="text-green-600 text-sm"> {formatTime(data.weeklyStats.thisWeek.time - data.weeklyStats.lastWeek.time)}</span>
                     ) : data.weeklyStats.thisWeek.time < data.weeklyStats.lastWeek.time ? (
-                      <span className="text-red-600 text-sm">↓ {formatTime(data.weeklyStats.lastWeek.time - data.weeklyStats.thisWeek.time)}</span>
+                      <span className="text-red-600 text-sm"> {formatTime(data.weeklyStats.lastWeek.time - data.weeklyStats.thisWeek.time)}</span>
                     ) : (
                       <span className="text-gray-600 text-sm">= same</span>
                     )}
