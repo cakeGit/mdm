@@ -34,7 +34,7 @@ COPY --from=builder /app/backend/schema.sql ./backend/schema.sql
 COPY --from=builder /app/frontend/dist ./frontend/dist
 
 # Create data directory for SQLite database
-RUN mkdir -p /app/data
+# (created later and owned by the non-root user to avoid permission issues)
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -48,8 +48,12 @@ EXPOSE 3001
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S mdm -u 1001
 
-# Change ownership of app directory
-RUN chown -R mdm:nodejs /app
+# Change ownership of app directory and ensure data dir is owned and writable
+RUN chown -R mdm:nodejs /app \
+  && mkdir -p /app/data \
+  && chown -R mdm:nodejs /app/data \
+  && chmod 700 /app/data
+
 USER mdm
 
 # Health check
