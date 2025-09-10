@@ -108,7 +108,14 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
           
           {/* Projects Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
+            {projects.map((project, index) => {
+              const progressPct = typeof project.progress === 'number'
+                ? project.progress
+                : (project.total_tasks && project.total_tasks > 0)
+                  ? ( (project.completed_tasks || 0) / project.total_tasks ) * 100
+                  : 0;
+
+              return (
             <Card 
               key={project.id} 
               className="card-bubbly cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fadeIn group"
@@ -150,9 +157,9 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">Progress</span>
-                    <span className="text-muted-foreground">{project.completed_tasks || 0}/{project.total_tasks || 0} tasks</span>
-                  </div>
+                      <span className="font-medium text-foreground">Progress</span>
+                      <span className="text-muted-foreground">{Math.round(progressPct)}%</span>
+                    </div>
                   {project.stageProgress && project.stageProgress.length > 0 ? (
                     <SegmentedProgressBar 
                       stageProgress={project.stageProgress} 
@@ -199,7 +206,8 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
           </div>
         </div>
       )}

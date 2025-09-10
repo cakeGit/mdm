@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
@@ -7,6 +7,23 @@ interface ActivityData {
   date: string;
   sessions: number;
   totalTime: number;
+}
+
+interface CalendarDay {
+  date: string;
+  dayOfWeek: number;
+  month: number;
+  year: number;
+  dayOfMonth: number;
+  weekOfYear: number;
+  activity?: ActivityData | null;
+  level: number;
+}
+
+interface WeekGroup {
+  days: CalendarDay[];
+  weekIndex: number;
+  monthLabel: string | null;
 }
 
 export function ActivityCalendar() {
@@ -68,8 +85,8 @@ export function ActivityCalendar() {
   };
 
   // Generate last 48 weeks for continuous display, but don't show future dates
-  const generateCalendarDays = () => {
-    const days = [];
+  const generateCalendarDays = (): CalendarDay[] => {
+    const days: CalendarDay[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
     const daysToShow = 48 * 7; // 48 weeks = 336 days
@@ -118,7 +135,95 @@ export function ActivityCalendar() {
     );
   }
 
-  const calendarDays = generateCalendarDays();
+  const calendarDays: CalendarDay[] = generateCalendarDays();
+
+  const calendarGridRef = useRef<HTMLDivElement | null>(null);
+
+  // Proximity mouse effect: subtle scale on days near the pointer.
+  useEffect(() => {
+    const container = calendarGridRef.current;
+    if (!container) return;
+
+    const DAY_SELECTOR = '.activity-day';
+    let dayEls = Array.from(container.querySelectorAll(DAY_SELECTOR)) as HTMLElement[];
+    if (dayEls.length === 0) return;
+
+    // Precompute centers for efficiency. Recompute on resize.
+    let centers: { el: HTMLElement; cx: number; cy: number }[] = [];
+    const recomputeCenters = () => {
+      dayEls = Array.from(container.querySelectorAll(DAY_SELECTOR)) as HTMLElement[];
+      centers = dayEls.map(el => {
+        const r = el.getBoundingClientRect();
+        return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+      });
+    };
+
+    recomputeCenters();
+    window.addEventListener('resize', recomputeCenters);
+
+    const radius = 72; // px influence radius
+    const radiusSq = radius * radius;
+    const maxScaleIncrease = 0.35; // element scale will be 1 .. 1+maxScaleIncrease
+
+    // Prepare elements
+    centers.forEach(({ el }) => {
+      el.style.transformOrigin = 'center center';
+      el.style.willChange = 'transform';
+      // gentle transition fallback for quick pointer hops
+      el.style.transition = 'transform 120ms ease-out';
+    });
+
+    let pointer = { x: -9999, y: -9999 };
+    let raf = 0;
+
+    const step = () => {
+      raf = 0;
+      for (const { el, cx, cy } of centers) {
+        const dx = pointer.x - cx;
+        const dy = pointer.y - cy;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > radiusSq) {
+          // revert
+          el.style.transform = '';
+          el.style.zIndex = '';
+          continue;
+        }
+        const t = 1 - Math.sqrt(d2) / radius; // 0..1
+        const scale = 1 + maxScaleIncrease * (t * t); // quadratic falloff
+        el.style.transform = `scale(${scale})`;
+        el.style.zIndex = String(Math.round(100 * (1 + maxScaleIncrease * t)));
+      }
+    };
+
+    const onPointerMove = (ev: PointerEvent) => {
+      pointer.x = ev.clientX;
+      pointer.y = ev.clientY;
+      if (!raf) raf = requestAnimationFrame(step);
+    };
+    const onPointerLeave = () => {
+      pointer.x = -9999;
+      pointer.y = -9999;
+      if (!raf) raf = requestAnimationFrame(step);
+    };
+
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerleave', onPointerLeave);
+
+    return () => {
+      window.removeEventListener('resize', recomputeCenters);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerleave', onPointerLeave);
+      if (raf) cancelAnimationFrame(raf);
+      // cleanup styles
+      centers.forEach(({ el }) => {
+        el.style.transform = '';
+        el.style.zIndex = '';
+        el.style.willChange = '';
+        el.style.transition = '';
+        el.style.transformOrigin = '';
+      });
+    };
+  }, [calendarDays.length]);
   
   const getMonthName = (monthIndex: number) => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -127,7 +232,7 @@ export function ActivityCalendar() {
   };
   
   // Group days by week for continuous horizontal display
-  const weekGroups = [];
+  const weekGroups: WeekGroup[] = [];
   for (let i = 0; i < calendarDays.length; i += 7) {
     const weekDays = calendarDays.slice(i, i + 7);
     const firstDay = weekDays[0];
@@ -174,7 +279,7 @@ export function ActivityCalendar() {
           </div>
 
           {/* Calendar Grid - Continuous horizontal by week - centered */}
-          <div className="space-y-1 flex flex-col items-center">
+          <div className="space-y-1 flex flex-col items-center" ref={calendarGridRef}>
             {/* Month labels positioned above weeks where months start */}
             <div className="flex justify-center w-full max-w-4xl">
               {weekGroups.map((week, index) => (
@@ -204,7 +309,7 @@ export function ActivityCalendar() {
                       return (
                         <div
                           key={weekIndex}
-                          className={`w-2.5 h-2.5 rounded-sm ${
+                          className={`activity-day w-2.5 h-2.5 rounded-sm ${
                             dayForThisWeekday ? getIntensityColor(dayForThisWeekday.level) : 'bg-gray-100'
                           } cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
                           title={

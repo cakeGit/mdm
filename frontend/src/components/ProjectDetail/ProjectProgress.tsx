@@ -17,9 +17,9 @@ export function ProjectProgress({ project }: ProjectProgressProps) {
       <div className="flex-1">
         <div className="flex justify-between text-sm mb-1">
           <span>Overall Progress</span>
-          <span>{completedTasks}/{totalTasks} tasks</span>
+          <span>{overallProgress.toFixed(0)}%</span>
         </div>
-        <SegmentedProgressBar stageProgress={stageProgress} className="mb-2" />
+        <SegmentedProgressBar stageProgress={stageProgress} className="mb-2 h-3" />
         <div className="text-xs text-gray-600 text-center">
           {overallProgress.toFixed(1)}% complete
         </div>

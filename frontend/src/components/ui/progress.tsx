@@ -1,26 +1,38 @@
 import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
+import { SegmentedProgressBar } from '@/components/SegmentedProgressBar'
+import { StageProgress } from '@/types'
 
-const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative h-4 w-full overflow-hidden rounded-full bg-secondary border border-border",
-      className
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
+type ProgressProps = React.HTMLAttributes<HTMLDivElement> & {
+  value?: number;
+  stageProgress?: StageProgress[];
+  className?: string;
+}
+
+const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(({ className = '', value = 0, stageProgress, ...props }, ref) => {
+  // If a stageProgress array isn't provided, treat the numeric value as a single segment
+  let segments: StageProgress[] | undefined = stageProgress;
+
+  if (!segments || segments.length === 0) {
+    const numeric = Math.max(0, Math.min(100, Number(value || 0)));
+    segments = [
+      {
+        id: -1,
+        name: 'Progress',
+        progress: numeric,
+        weight: 1,
+      },
+    ];
+  }
+
+  return (
+    <div ref={ref} className={cn('w-full', className)} {...props}>
+      {/* Inner bar fills the wrapper height so callers can control height via the wrapper's className */}
+      <SegmentedProgressBar stageProgress={segments} className="h-full" />
+    </div>
+  );
+});
+Progress.displayName = 'Progress'
 
 export { Progress }
