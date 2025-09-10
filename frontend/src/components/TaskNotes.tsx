@@ -6,12 +6,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskNote } from '@/types';
 import { apiRequest } from '@/lib/api';
+import { UnifiedAddForm, FieldConfig } from '@/components/UnifiedAddForm';
 
 interface TaskNotesProps {
   taskId: number;
   collapsible?: boolean;
   onNotesChange?: (count: number) => void;
 }
+
+const noteFields: FieldConfig[] = [
+  {
+    key: 'content',
+    label: 'Note Content',
+    placeholder: 'Enter your note...',
+    type: 'textarea',
+    required: true,
+    allowNewlines: true // Allow Shift+Enter for newlines in note content
+  }
+];
 
 export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNotesProps) {
   const [notes, setNotes] = useState<TaskNote[]>([]);
@@ -56,26 +68,34 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
     }
   };
 
-  const handleAddNote = async () => {
-    if (!newNoteContent.trim()) return;
+  const handleAddNote = async (content?: string) => {
+    const noteContent = content || newNoteContent;
+    if (!noteContent.trim()) return;
 
     try {
       const response = await apiRequest('/api/task-notes', {
         method: 'POST',
         body: JSON.stringify({
           task_id: taskId,
-          content: newNoteContent.trim()
+          content: noteContent.trim()
         })
       });
 
       if (response.ok) {
         setNewNoteContent('');
-  setShowAddForm(false);
-  setShowAddModal(false);
+        setShowAddForm(false);
+        setShowAddModal(false);
         await fetchNotes();
       }
     } catch (error) {
       console.error('Failed to add note:', error);
+    }
+  };
+
+  const handleUnifiedFormSubmit = (values: Record<string, string>, keepOpen?: boolean) => {
+    handleAddNote(values.content);
+    if (!keepOpen) {
+      setShowAddForm(false);
     }
   };
 
@@ -247,34 +267,31 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
   return (
     <div className="space-y-3 mt-3">
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center text-sm text-gray-600 hover:text-gray-800 ${notes.length === 0 ? "h-6" : "p-1 space-x-2"}`}
-        >
-          {notes.length === 0 ? (
-            // Compact clickable label for adding a note when there are none
-            <Button
-              size="tn"
-              variant="ghost"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                setShowAddForm(true);
-                setIsExpanded(true);
-              }}
-              className="text-xs text-gray-600 hover:text-blue-700"
-            >
-              Add note
-            </Button>
-          ) : (
-            <>
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <StickyNote className="w-4 h-4" />
-              <span>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
-            </>
-          )}
-        </Button>
+        {notes.length === 0 ? (
+          // Compact clickable label for adding a note when there are none
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setShowAddForm(true);
+              setIsExpanded(true);
+            }}
+            className="text-xs text-gray-600 hover:text-blue-700"
+          >
+            Add Note
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center text-sm text-gray-600 hover:text-gray-800 p-1 space-x-2"
+          >
+            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <StickyNote className="w-4 h-4" />
+            <span>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+          </Button>
+        )}
         {isExpanded && notes.length > 0 && (
           <Button
             size="sm"
@@ -352,37 +369,16 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
 
           {/* Inline Add Note Form */}
           {showAddForm && (
-            <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Textarea
-                    value={newNoteContent}
-                    onChange={(e) => setNewNoteContent(e.target.value)}
-                    placeholder="Enter your note..."
-                    className="border-blue-300 focus:border-blue-500 min-h-[80px]"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setNewNoteContent('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={handleAddNote} 
-                      disabled={!newNoteContent.trim()}
-                    >
-                      Save Note
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <UnifiedAddForm
+              fields={noteFields}
+              onSubmit={handleUnifiedFormSubmit}
+              onCancel={() => {
+                setShowAddForm(false);
+                setNewNoteContent('');
+              }}
+              submitLabel="Save Note"
+              autoFocus={true}
+            />
           )}
         </>
       )}
