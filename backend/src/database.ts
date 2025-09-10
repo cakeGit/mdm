@@ -7,7 +7,29 @@ const DB_PATH = process.env.DB_PATH || './database.sqlite';
 
 export const initDatabase = (): Promise<sqlite3.Database> => {
   return new Promise(async (resolve, reject) => {
-    const db = new sqlite3.Database(DB_PATH, async (err) => {
+    const resolvedDbPath = path.resolve(DB_PATH);
+    const dbDir = path.dirname(resolvedDbPath);
+
+    try {
+      // ensure parent directory exists
+      fs.mkdirSync(dbDir, { recursive: true });
+    } catch (dirErr) {
+      const msg = dirErr instanceof Error ? dirErr.message : String(dirErr);
+      reject(new Error(`Cannot create DB directory ${dbDir}: ${msg}`));
+      return;
+    }
+
+    try {
+      // ensure the DB file can be created/opened (create empty file if missing)
+      const fd = fs.openSync(resolvedDbPath, 'a');
+      fs.closeSync(fd);
+    } catch (fileErr) {
+      const msg = fileErr instanceof Error ? fileErr.message : String(fileErr);
+      reject(new Error(`Cannot create/open DB file ${resolvedDbPath}: ${msg}`));
+      return;
+    }
+
+    const db = new sqlite3.Database(resolvedDbPath, async (err) => {
       if (err) {
         reject(err);
         return;
@@ -49,5 +71,5 @@ export const initDatabase = (): Promise<sqlite3.Database> => {
 };
 
 export const getDatabase = (): sqlite3.Database => {
-  return new sqlite3.Database(DB_PATH);
+  return new sqlite3.Database(path.resolve(DB_PATH));
 };
