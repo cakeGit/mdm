@@ -20,7 +20,7 @@ interface ProjectDashboardProps {
 }
 
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [celebration, setCelebration] = useState<{
     trigger: 'task' | 'stage' | 'project' | 'streak' | null;
@@ -151,22 +151,21 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-foreground">Progress</span>
-                    <span className="text-muted-foreground">{project.completed_tasks || 0}/{project.total_tasks || 0} tasks</span>
+                    <span className="text-muted-foreground">{project.completed_tasks || 0} tasks completed</span>
                   </div>
-                  {project.stageProgress && project.stageProgress.length > 0 ? (
-                    <SegmentedProgressBar 
-                      stageProgress={project.stageProgress} 
-                      className="h-3"
-                    />
-                  ) : (
-                    <Progress 
-                      value={project.progress || 0} 
-                      className="h-2 group-hover:h-3 transition-all duration-200 border border-gray-300"
-                      style={{
-                        backgroundColor: `${project.color}20`,
-                      }}
-                    />
-                  )}
+                  <SegmentedProgressBar
+                    stageProgress={
+                      project.stageProgress && project.stageProgress.length > 0
+                        ? project.stageProgress
+                        : [{
+                            id: 1,
+                            name: 'All Tasks',
+                            progress: project.progress || 0,
+                            weight: 1
+                          }]
+                    }
+                    className="h-3"
+                  />
                 </div>
                 
                 {/* Suggested Next Task */}
