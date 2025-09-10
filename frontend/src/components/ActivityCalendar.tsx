@@ -39,18 +39,20 @@ export function ActivityCalendar() {
       // Get the last 365 days of session data
       const response = await apiRequest('/api/sessions?filter=all');
       const sessions = await response.json();
-      
-      // Group sessions by date
+
+      // Group sessions by date (always use UTC date string)
       const dateMap = new Map<string, ActivityData>();
-      
+
       sessions.forEach((session: any) => {
-        const date = new Date(session.started_at).toISOString().split('T')[0];
-        const existing = dateMap.get(date) || { date, sessions: 0, totalTime: 0 };
+        const date = new Date(session.started_at);
+        // Always use UTC date string for consistency
+        const dateStr = date.toISOString().split('T')[0];
+        const existing = dateMap.get(dateStr) || { date: dateStr, sessions: 0, totalTime: 0 };
         existing.sessions += 1;
         existing.totalTime += session.duration;
-        dateMap.set(date, existing);
+        dateMap.set(dateStr, existing);
       });
-      
+
       setActivityData(Array.from(dateMap.values()));
     } catch (error) {
       console.error('Failed to fetch activity data:', error);
@@ -84,59 +86,43 @@ export function ActivityCalendar() {
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
-  // Generate last 48 weeks for continuous display, but don't show future dates
+  // Generate last 48 weeks for continuous display, but do not render days after today
   const generateCalendarDays = (): CalendarDay[] => {
     const days: CalendarDay[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+    const now = new Date();
+    // Always use UTC for today
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const daysToShow = 48 * 7; // 48 weeks = 336 days
-    
-    // Go back 48 weeks
+
+    // Go back 48 weeks, but only add days up to and including today (UTC)
     for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      // Skip dates that are in the future
-      if (date > today) continue;
-      
+      const date = new Date(todayUTC);
+      date.setUTCDate(date.getUTCDate() - i);
+
+      // Only add days up to and including today (not after)
+      if (date.getTime() > todayUTC.getTime()) continue;
+
       const dateStr = date.toISOString().split('T')[0];
-      
       const activity = activityData.find(a => a.date === dateStr);
       const level = activity ? getIntensityLevel(activity.sessions, activity.totalTime) : 0;
-      
+
       days.push({
         date: dateStr,
-        dayOfWeek: date.getDay(),
-        month: date.getMonth(),
-        year: date.getFullYear(),
-        dayOfMonth: date.getDate(),
+        dayOfWeek: date.getUTCDay(),
+        month: date.getUTCMonth(),
+        year: date.getUTCFullYear(),
+        dayOfMonth: date.getUTCDate(),
         weekOfYear: Math.floor(i / 7),
         activity,
         level
       });
     }
-    
+
     return days;
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Activity Calendar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse bg-gray-200 h-20 rounded"></div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const calendarDays: CalendarDay[] = generateCalendarDays();
-
   const calendarGridRef = useRef<HTMLDivElement | null>(null);
 
   // Proximity mouse effect: subtle scale on days near the pointer.
@@ -224,6 +210,22 @@ export function ActivityCalendar() {
       });
     };
   }, [calendarDays.length]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Activity Calendar
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse bg-gray-200 h-20 rounded"></div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   const getMonthName = (monthIndex: number) => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -231,21 +233,41 @@ export function ActivityCalendar() {
     return monthNames[monthIndex];
   };
   
-  // Group days by week for continuous horizontal display
+  // Group days by week for continuous horizontal display, but cut off the week after today
+  // Group days into 48 sequential weeks, starting from the first day
+  // Align to week start (Sunday). Find the first Sunday in calendarDays.
+  let startIdx = 0;
+  for (let i = 0; i < calendarDays.length; i++) {
+    if (calendarDays[i].dayOfWeek === 0) {
+      startIdx = i;
+      break;
+    }
+  }
   const weekGroups: WeekGroup[] = [];
-  for (let i = 0; i < calendarDays.length; i += 7) {
+  let weekIndex = 0;
+  let lastMonthLabel: number | null = null;
+  for (let i = startIdx; i < calendarDays.length; i += 7) {
     const weekDays = calendarDays.slice(i, i + 7);
-    const firstDay = weekDays[0];
-    
-    // Check if this week starts a new month or if it's the first week
-    const isNewMonth = i === 0 || 
-      (i > 0 && calendarDays[i - 1].month !== firstDay.month);
-    
+    if (weekDays.length === 0) continue;
+    // Sort weekDays by dayOfWeek (0=Sunday, ..., 6=Saturday)
+    const sortedWeekDays = weekDays.slice().sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+    // Find the first day in this week that is a new month compared to last label
+    let newMonth: number | null = null;
+    for (const day of sortedWeekDays) {
+      if (lastMonthLabel === null || day.month !== lastMonthLabel) {
+        newMonth = day.month;
+        break;
+      }
+    }
+    const monthLabel = newMonth !== null ? getMonthName(newMonth) : null;
+    if (monthLabel) lastMonthLabel = newMonth;
     weekGroups.push({
-      days: weekDays,
-      weekIndex: Math.floor(i / 7),
-      monthLabel: isNewMonth ? getMonthName(firstDay.month) : null
+      days: sortedWeekDays,
+      weekIndex,
+      monthLabel
     });
+    weekIndex++;
+    if (weekGroups.length >= 48) break;
   }
 
   const totalSessions = activityData.reduce((sum, day) => sum + day.sessions, 0);
@@ -278,68 +300,107 @@ export function ActivityCalendar() {
             </div>
           </div>
 
-          {/* Calendar Grid - Continuous horizontal by week - centered */}
-          <div className="space-y-1 flex flex-col items-center" ref={calendarGridRef}>
-            {/* Month labels positioned above weeks where months start */}
-            <div className="flex justify-center w-full max-w-4xl">
-              {weekGroups.map((week, index) => (
-                <div key={index} className="flex-1 min-w-[14px] max-w-[20px]">
-                  {week.monthLabel && (
-                    <div className="text-xs text-gray-500 font-medium text-center mb-1">
-                      {week.monthLabel}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            {/* Day grid - 7 rows for each day of week - centered */}
-            <div className="w-full max-w-4xl">
-              {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
-                <div key={dayOfWeek} className="flex items-center justify-center">
-                  {/* Day label */}
-                  <div className="w-8 text-xs text-gray-500 text-right mr-2">
-                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
-                  </div>
-                  
-                  {/* Days for this day of week across all weeks */}
-                  <div className="flex flex-1 gap-0.5 justify-center">
-                    {weekGroups.map((week, weekIndex) => {
-                      const dayForThisWeekday = week.days.find(day => day.dayOfWeek === dayOfWeek);
-                      return (
-                        <div
-                          key={weekIndex}
-                          className={`activity-day w-2.5 h-2.5 rounded-sm ${
-                            dayForThisWeekday ? getIntensityColor(dayForThisWeekday.level) : 'bg-gray-100'
-                          } cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
-                          title={
-                            dayForThisWeekday && dayForThisWeekday.activity 
-                              ? `${dayForThisWeekday.date}: ${dayForThisWeekday.activity.sessions} sessions, ${formatTime(dayForThisWeekday.activity.totalTime)}`
-                              : dayForThisWeekday 
-                                ? `${dayForThisWeekday.date}: No activity`
-                                : ''
+          {/* Calendar Grid - Continuous horizontal by week - left aligned, centered container */}
+          <div className="w-full flex justify-center">
+            <div className="space-y-1 flex flex-col items-start max-w-3xl w-full" ref={calendarGridRef}>
+              {/* Month labels as a single row above the grid, using CSS grid and colSpan */}
+              <div className="w-full">
+                <table className="table-fixed w-full select-none">
+                  <thead>
+                    <tr>
+                      <th className="w-8"></th>
+                      {/* Dynamically render month labels with correct colSpan */}
+                      {(() => {
+                        // Build an array of { month, label, span }
+                        const monthSpans = [];
+                        let currentMonth: number | null = null;
+                        let currentLabel: string | null = null;
+                        let span = 0;
+                        for (let i = 0; i < weekGroups.length; i++) {
+                          const week = weekGroups[i];
+                          // Use the month of the last day in the week
+                          const lastDay = week.days[week.days.length - 1];
+                          const weekMonth = lastDay ? lastDay.month : null;
+                          if (currentMonth === null || weekMonth !== currentMonth) {
+                            if (span > 0 && currentMonth !== null) {
+                              monthSpans.push({ month: currentMonth, label: currentLabel, span });
+                            }
+                            currentMonth = weekMonth;
+                            currentLabel = weekMonth !== null ? getMonthName(weekMonth) : '';
+                            span = 1;
+                          } else {
+                            span++;
                           }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                        }
+                        if (span > 0 && currentMonth !== null) {
+                          monthSpans.push({ month: currentMonth, label: currentLabel, span });
+                        }
+                        return monthSpans.map((m, idx) => (
+                          <th
+                            key={m.month + '-' + idx}
+                            colSpan={m.span}
+                            className="text-xs text-gray-500 font-medium text-left mb-1 px-0 py-0 h-5"
+                          >
+                            {m.label}
+                          </th>
+                        ));
+                      })()}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Day grid - 7 rows for each day of week - left aligned */}
+                    {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => (
+                      <tr key={dayOfWeek}>
+                        {/* Day label */}
+                        <td className="w-8 text-xs text-gray-500 text-right pr-2 align-middle">
+                          {['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayOfWeek]}
+                        </td>
+                        {/* Days for this day of week across all weeks */}
+                        {weekGroups.map((week, weekIndex) => {
+                          const dayForThisWeekday = week.days.find(day => day.dayOfWeek === dayOfWeek);
+                          if (!dayForThisWeekday) return <td key={weekIndex}></td>;
+                          const now = new Date();
+                          const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                          const dayDate = new Date(dayForThisWeekday.date + 'T00:00:00.000Z');
+                          if (dayDate.getTime() > todayUTC.getTime()) return <td key={weekIndex}></td>;
+                          return (
+                            <td key={weekIndex} className="p-0 align-middle">
+                              <div
+                                className={`activity-day w-2.5 h-2.5 rounded-sm ${getIntensityColor(dayForThisWeekday.level)} cursor-pointer transition-all hover:scale-125 flex-shrink-0`}
+                                title={
+                                  dayForThisWeekday.activity
+                                    ? `${dayForThisWeekday.date}: ${dayForThisWeekday.activity.sessions} sessions, ${formatTime(dayForThisWeekday.activity.totalTime)}`
+                                    : `${dayForThisWeekday.date}: No activity`
+                                }
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-between text-xs text-gray-600">
-            <span>Less</span>
-            <div className="flex gap-1">
-              {[0, 1, 2, 3, 4].map(level => (
-                <div
-                  key={level}
-                  className={`w-3 h-3 rounded-sm ${getIntensityColor(level)}`}
-                />
-              ))}
+          <div className="w-full flex justify-center">
+            <div className="flex items-center justify-between text-xs text-gray-600 w-fit">
+              <span>Less</span>
+              <div className="flex gap-2 p-1">
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3, 4].map(level => (
+                    <div
+                      key={level}
+                      className={`w-3 h-3 rounded-sm ${getIntensityColor(level)}`}
+                      style={{ padding: '5px' }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <span>More</span>
             </div>
-            <span>More</span>
           </div>
         </div>
       </CardContent>

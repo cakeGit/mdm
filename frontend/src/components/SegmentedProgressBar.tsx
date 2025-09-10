@@ -7,7 +7,7 @@ interface SegmentedProgressBarProps {
 
 export function SegmentedProgressBar({ stageProgress, className = '' }: SegmentedProgressBarProps) {
   // Ensure a sensible default height so the bar never collapses when callers omit height classes
-  const rootClass = `h-3 bg-gray-200 border border-gray-300 overflow-hidden flex gap-0.5 ${className}`.trim();
+  const rootClass = `h-3 bg-gray-200 border border-gray-300 overflow-hidden flex gap-2 ${className}`.trim();
 
   if (stageProgress.length === 0) {
     return (

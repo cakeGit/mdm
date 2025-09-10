@@ -168,7 +168,7 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
                   ) : (
                     <Progress 
                       value={project.progress || 0} 
-                      className="h-2 group-hover:h-3 transition-all duration-200 border border-gray-300"
+                      className="h-2 group-hover:h-3 transition-all duration-200"
                       style={{
                         backgroundColor: `${project.color}20`,
                       }}

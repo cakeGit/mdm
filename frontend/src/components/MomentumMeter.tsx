@@ -60,7 +60,7 @@ export function MomentumMeter({ className = '' }: MomentumMeterProps) {
           Progress Streak
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
+  <CardContent className="px-4 pt-0 pb-0">
         <div className="flex items-center space-x-3">
           <div className={`${getStreakColor()} transition-colors duration-300`}>
             <Flame className={`w-8 h-8 ${streak > 0 ? 'animate-bounce' : ''}`} />
@@ -79,7 +79,7 @@ export function MomentumMeter({ className = '' }: MomentumMeterProps) {
         </div>
         {streak > 0 && (
           <div className="mt-2 text-xs text-orange-600">
-            🎯 1-day grace period available
+
           </div>
         )}
       </CardContent>
