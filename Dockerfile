@@ -28,14 +28,10 @@ RUN apk add --no-cache dumb-init
 WORKDIR /app
 
 # Copy built application
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/node_modules ./backend/node_modules
-COPY --from=builder /app/backend/schema.sql ./backend/schema.sql
-COPY --from=builder /app/frontend/dist ./frontend/dist
+# Copy the entire app directory from builder
+COPY --from=builder /app ./
 
 # Copy root package.json and node_modules for npm start
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
 
 # Expose port
 EXPOSE 3005
