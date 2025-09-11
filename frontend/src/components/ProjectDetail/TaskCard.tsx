@@ -101,7 +101,6 @@ export function TaskCard({
                   }}
                   onClick={(e) => e.stopPropagation()}
                   onMouseDown={(e) => e.stopPropagation()}
-                  onSelectStart={(e) => e.stopPropagation()}
                   className="font-medium border-green-300 focus:border-green-500"
                   autoFocus
                 />

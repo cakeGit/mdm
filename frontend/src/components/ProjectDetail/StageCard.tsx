@@ -108,7 +108,6 @@ export function StageCard({
               }}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              onSelectStart={(e) => e.stopPropagation()}
               className="text-lg font-semibold border-blue-300 focus:border-blue-500"
               autoFocus
             />
