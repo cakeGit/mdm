@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, MoreVertical } from 'lucide-react';
+import { Plus, Edit, MoreVertical, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +9,7 @@ import { MomentumMeter } from '@/components/MomentumMeter';
 import { AutoRolloverTasks } from '@/components/AutoRolloverTasks';
 import { ReviveProjectPrompt } from '@/components/ReviveProjectPrompt';
 import { ProgressiveCelebrations } from '@/components/ProgressiveCelebrations';
+import { SessionLogger } from '@/components/SessionLogger';
 
 // Utility to darken a hex color by a given percent
 function darkenColor(hex: string, percent: number) {
@@ -36,6 +37,7 @@ interface ProjectDashboardProps {
 export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRefresh }: ProjectDashboardProps) {
   const [loading] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [showSessionLogger, setShowSessionLogger] = useState(false);
   const [celebration, setCelebration] = useState<{
     trigger: 'task' | 'stage' | 'project' | 'streak' | null;
     data?: any;
@@ -59,6 +61,12 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
     onRefresh();
   };
 
+  const handleSessionLogged = () => {
+    setShowSessionLogger(false);
+    // Optionally refresh data if sessions affect project stats
+    onRefresh();
+  };
+
   if (loading) {
     return <div className="p-8">Loading projects...</div>;
   }
@@ -74,13 +82,23 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
             Manage and track your mod development journey
           </p>
         </div>
-        <Button 
-          onClick={onNewProject}
-          className="button-bubbly bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 text-base font-medium shadow-lg"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          New Project
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button 
+            onClick={() => setShowSessionLogger(true)}
+            variant="outline"
+            className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 px-4 py-2 text-sm font-medium shadow-sm"
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            Log Session
+          </Button>
+          <Button 
+            onClick={onNewProject}
+            className="button-bubbly bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 text-base font-medium shadow-lg"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       {projects.length === 0 ? (
@@ -223,6 +241,12 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
         onClose={() => setEditingProject(null)}
         onProjectUpdated={handleEditComplete}
         project={editingProject}
+      />
+      
+      <SessionLogger
+        isOpen={showSessionLogger}
+        onClose={() => setShowSessionLogger(false)}
+        onSessionLogged={handleSessionLogged}
       />
       
       <ProgressiveCelebrations

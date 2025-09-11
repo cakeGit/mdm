@@ -36,6 +36,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
   const [dragOverNoteId, setDragOverNoteId] = useState<number | null>(null);
   const [insertPosition, setInsertPosition] = useState<'before' | 'after' | null>(null);
   const [isExpanded, setIsExpanded] = useState(!collapsible);
+  const [editingInlineNoteId, setEditingInlineNoteId] = useState<number | null>(null);
   const modalTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -320,15 +321,15 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
                   )}
                   
                   <Card 
-                    className={`bg-white border-gray-200 cursor-move transition-all ${
+                    className={`bg-white border-gray-200 ${editingInlineNoteId === note.id ? 'cursor-text' : 'cursor-move'} transition-all ${
                       draggedNoteId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
                     } ${dragOverNoteId === note.id ? 'ring-2 ring-blue-300' : ''}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, note.id!)}
-                    onDragOver={(e) => handleDragOver(e, note.id!)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, note.id!)}
-                    onDragEnd={handleDragEnd}
+                    draggable={editingInlineNoteId !== note.id}
+                    onDragStart={(e) => editingInlineNoteId !== note.id && handleDragStart(e, note.id!)}
+                    onDragOver={(e) => editingInlineNoteId !== note.id && handleDragOver(e, note.id!)}
+                    onDragLeave={editingInlineNoteId !== note.id ? handleDragLeave : undefined}
+                    onDrop={(e) => editingInlineNoteId !== note.id && handleDrop(e, note.id!)}
+                    onDragEnd={editingInlineNoteId !== note.id ? handleDragEnd : undefined}
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start">

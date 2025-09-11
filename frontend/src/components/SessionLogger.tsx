@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Plus } from 'lucide-react';
+import { Clock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,17 +89,25 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
     { label: '2 hours', hours: 2, minutes: 0 },
   ];
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={(e) => {
+      if (e.target === e.currentTarget) handleClose();
+    }}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-0 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Log Work Session
-          </DialogTitle>
-        </DialogHeader>
+          </h2>
+          <Button variant="ghost" size="sm" onClick={handleClose} className="rounded-full h-8 w-8 p-0 hover:bg-gray-100 transition-all duration-200">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium">Project</label>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
@@ -191,7 +199,8 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }
