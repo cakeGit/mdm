@@ -81,18 +81,20 @@ describe('ModDevManager Core Functionality Tests', () => {
       expect(screen.getByText('Another test project')).toBeInTheDocument();
     });
 
-    it('should display status badges', () => {
+    it('should display project progress without status badges', () => {
       render(<ProjectDashboard {...defaultProps} />);
       
-      expect(screen.getByText('active')).toBeInTheDocument();
-      expect(screen.getByText('planning')).toBeInTheDocument();
+      // Should not display status badges anymore
+      expect(screen.queryByText('active')).not.toBeInTheDocument();
+      expect(screen.queryByText('planning')).not.toBeInTheDocument();
     });
 
     it('should show progress bars calculated from completed tasks', () => {
       render(<ProjectDashboard {...defaultProps} />);
       
-      expect(screen.getByText('3/10 tasks')).toBeInTheDocument();
-      expect(screen.getByText('0/5 tasks')).toBeInTheDocument();
+      // Should show progress as percentages
+      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
     });
 
     it('should display "Last Updated" timestamps', () => {
@@ -243,7 +245,7 @@ describe('Core Feature Checklist', () => {
     const coreFeatures = {
       'Project Dashboard with cards': true,
       'Project creation modal': true,
-      'Status badges and progress bars': true,
+      'Status badges removed and progress bars': true,
       'Empty state design': true,
       'New Project button functionality': true,
       'Project editing capability': true,

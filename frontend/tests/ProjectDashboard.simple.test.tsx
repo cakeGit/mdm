@@ -37,16 +37,17 @@ describe('ProjectDashboard Core Features', () => {
     expect(screen.getByText('A test mod project')).toBeInTheDocument();
   });
 
-  it('should show project status badge', () => {
+  it('should not show project status badge', () => {
     render(<ProjectDashboard {...defaultProps} />);
     
-    expect(screen.getByText('active')).toBeInTheDocument();
+    // Status badge should not be displayed
+    expect(screen.queryByText('active')).not.toBeInTheDocument();
   });
 
-  it('should display task progress', () => {
+  it('should display task progress as percentage', () => {
     render(<ProjectDashboard {...defaultProps} />);
     
-    expect(screen.getByText('3/10 tasks')).toBeInTheDocument();
+    expect(screen.getByText('30%')).toBeInTheDocument();
   });
 
   it('should have New Project button', () => {
