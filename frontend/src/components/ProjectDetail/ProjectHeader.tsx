@@ -88,9 +88,6 @@ export function ProjectHeader({ project, onUpdateProject, onEditProject }: Proje
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`px-3 py-1 rounded-full text-sm text-white bg-blue-500`}>
-          {project.status}
-        </span>
         <Button
           variant="outline"
           size="sm"
