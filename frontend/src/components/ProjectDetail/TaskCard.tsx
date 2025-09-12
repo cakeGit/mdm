@@ -65,15 +65,15 @@ export function TaskCard({
       )}
       
       <div 
-        className={`p-3 rounded border cursor-move transition-all ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''} ${
+        className={`p-3 rounded border ${editingTitle ? 'cursor-text' : 'cursor-move'} transition-all ${getTaskStatusColor(task.status)} ${task.is_pinned ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''} ${
           draggedTaskId === task.id ? 'opacity-50 scale-95' : 'hover:shadow-md'
         } ${dragOverTaskId === task.id ? 'ring-2 ring-blue-300' : ''}`}
-        draggable
-        onDragStart={(e) => onDragStart(e, task.id!)}
-        onDragOver={(e) => onDragOver(e, task.id!)}
-        onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, task.id!)}
-        onDragEnd={onDragEnd}
+        draggable={!editingTitle}
+        onDragStart={(e) => !editingTitle && onDragStart(e, task.id!)}
+        onDragOver={(e) => !editingTitle && onDragOver(e, task.id!)}
+        onDragLeave={!editingTitle ? onDragLeave : undefined}
+        onDrop={(e) => !editingTitle && onDrop(e, task.id!)}
+        onDragEnd={!editingTitle ? onDragEnd : undefined}
       >
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-1">
@@ -99,6 +99,8 @@ export function TaskCard({
                     if (e.key === 'Enter') saveTitle();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                   className="font-medium border-green-300 focus:border-green-500"
                   autoFocus
                 />
