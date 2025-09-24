@@ -29,6 +29,7 @@ CREATE TABLE stages (
     name TEXT NOT NULL,
     description TEXT,
     sort_order INTEGER DEFAULT 0,
+    weight INTEGER DEFAULT 1,
     is_completed BOOLEAN DEFAULT 0,
     FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
     FOREIGN KEY (parent_stage_id) REFERENCES stages (id) ON DELETE CASCADE
