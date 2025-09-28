@@ -23,6 +23,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
   const [showRecap, setShowRecap] = useState(false);
   const [completedSession, setCompletedSession] = useState<any>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [focusQuote, setFocusQuote] = useState<string | null>(null);
   const [pinnedTasks, setPinnedTasks] = useState<Task[]>([]);
   const [loadingPinned, setLoadingPinned] = useState(false);
 
@@ -54,6 +55,15 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       fetchPinnedTasks(selectedProjectId);
     }
   }, [focusMode, selectedProjectId]);
+
+  // Set a random quote when entering focus mode
+  useEffect(() => {
+    if (focusMode) {
+      setFocusQuote(getRandomQuote());
+    } else {
+      setFocusQuote(null);
+    }
+  }, [focusMode]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -333,7 +343,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
               <div className="space-y-4">
                 <div className="text-6xl">🎯</div>
                 <blockquote className="text-xl font-light text-gray-600 italic max-w-2xl mx-auto">
-                  "{getRandomQuote()}"
+                  "{focusQuote}"
                 </blockquote>
               </div>
 
