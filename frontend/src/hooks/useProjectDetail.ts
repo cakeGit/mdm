@@ -136,6 +136,31 @@ export function useProjectDetail(projectId: number) {
     }
   };
 
+  const reorderStages = async (stageIds: number[]) => {
+    // Optimistic update
+    const originalProject = project;
+    if (!project) return;
+    
+    const existingStages = project.stages ?? [];
+    const newStages = stageIds.map(id => existingStages.find(s => s.id === id)).filter(Boolean) as Stage[];
+    setProject(prev => prev ? { ...prev, stages: newStages } : prev);
+
+    try {
+      await apiRequest(`/api/stages/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: project.id,
+          stage_ids: stageIds,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to reorder stages:', error);
+      // Revert on error
+      setProject(originalProject);
+    }
+  };
+
   return {
     project,
     loading,
@@ -147,5 +172,6 @@ export function useProjectDetail(projectId: number) {
     addTask,
     updateTask,
     reorderTasks,
+    reorderStages,
   };
 }

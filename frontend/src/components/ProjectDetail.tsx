@@ -25,6 +25,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
     addTask,
     updateTask,
     reorderTasks,
+    reorderStages,
   } = useProjectDetail(projectId);
 
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
@@ -55,6 +56,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             onAddTask={addTask}
             onUpdateTask={updateTask}
             onReorderTasks={reorderTasks}
+            onReorderStages={reorderStages}
           />
         </div>
 
