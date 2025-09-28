@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StageCard } from './StageCard';
 import { NewStageForm } from './NewStageForm';
+import { useStageDragAndDrop } from '@/hooks/useStageDragAndDrop';
 import { ProjectWithDetails, Stage, Task } from '@/types';
 
 interface StageListProps {
@@ -13,6 +14,7 @@ interface StageListProps {
   onAddTask: (stageId: number, title: string, description: string, keepOpen?: boolean) => void;
   onUpdateTask: (taskId: number, data: Partial<Task>) => void;
   onReorderTasks: (stageId: number, taskIds: number[]) => void;
+  onReorderStages: (stageIds: number[]) => void;
 }
 
 export function StageList({ 
@@ -21,7 +23,8 @@ export function StageList({
   onUpdateStage, 
   onAddTask, 
   onUpdateTask,
-  onReorderTasks
+  onReorderTasks,
+  onReorderStages
 }: StageListProps) {
   const [showNewStageForm, setShowNewStageForm] = useState(false);
   const [showCompactView, setShowCompactView] = useState(false);
@@ -30,6 +33,41 @@ export function StageList({
     onAddStage(name, description, keepOpen);
     if (!keepOpen) setShowNewStageForm(false);
   };
+
+  const handleStageReorder = (draggedId: number, dropTargetId: number, position: 'before' | 'after') => {
+    if (!project.stages) return;
+
+    const draggedIndex = project.stages.findIndex(stage => stage.id === draggedId);
+    const dropIndex = project.stages.findIndex(stage => stage.id === dropTargetId);
+
+    if (draggedIndex === -1 || dropIndex === -1) return;
+
+    const newStages = [...project.stages];
+    const [draggedStage] = newStages.splice(draggedIndex, 1);
+    
+    let insertIndex = dropIndex;
+    if (position === 'after') {
+      insertIndex = dropIndex + 1;
+    }
+    if (draggedIndex < dropIndex && position === 'before') {
+      insertIndex = dropIndex - 1;
+    }
+
+    newStages.splice(insertIndex, 0, draggedStage);
+    const stageIds = newStages.map(stage => stage.id!);
+    onReorderStages(stageIds);
+  };
+
+  const {
+    draggedStageId,
+    dragOverStageId,
+    stageInsertPosition,
+    handleStageDragStart,
+    handleStageDragOver,
+    handleStageDragLeave,
+    handleStageDrop,
+    handleStageDragEnd,
+  } = useStageDragAndDrop(handleStageReorder);
 
   return (
     <div>
@@ -63,6 +101,14 @@ export function StageList({
                 onAddTask={onAddTask}
                 onUpdateTask={onUpdateTask}
                 onReorderTasks={onReorderTasks}
+                draggedStageId={draggedStageId}
+                dragOverStageId={dragOverStageId}
+                stageInsertPosition={stageInsertPosition}
+                onDragStart={handleStageDragStart}
+                onDragOver={handleStageDragOver}
+                onDragLeave={handleStageDragLeave}
+                onDrop={handleStageDrop}
+                onDragEnd={handleStageDragEnd}
               />
             ))}
             {showNewStageForm && (
