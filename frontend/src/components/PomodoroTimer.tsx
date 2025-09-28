@@ -25,6 +25,35 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
   const [focusMode, setFocusMode] = useState(false);
   const [pinnedTasks, setPinnedTasks] = useState<Task[]>([]);
   const [loadingPinned, setLoadingPinned] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  // Array of focus quotes
+  const QUOTES = [
+    "Focus is the art of knowing what to ignore.",
+    "The successful warrior is the average man with laser-like focus.", 
+    "Concentration is the secret of strength.",
+    "You can't hit a target you can't see.",
+    "What we focus on, we create more of.",
+    "Focus like a laser, not a flashlight.",
+    "Distraction is the enemy of vision.",
+    "Focus is pulling back the bow; relaxation is letting go the arrow.",
+    "I once debugged code for 3 days straight. Turns out I forgot a semicolon.", // Fake/outlandish
+    "Einstein said focus is everything, but he never had to deal with notifications.", // Fake
+    "The ancient Romans invented focus mode when they removed Twitter from their tablets.", // Fake/outlandish
+    "Studies show 87.3% of statistics about focus are made up on the spot.", // Fake
+    "Focus is like pizza - even when it's bad, it's still pretty good.", // Outlandish
+    "Confucius say: Focus without wifi is like car without gas - technically possible but really inconvenient.", // Fake/outlandish
+    "My grandmother always said: Focus is like underwear - essential, but nobody needs to see it.", // Outlandish
+    "NASA scientists recently discovered that focused developers emit 23% more caffeine particles.", // Fake
+    "In medieval times, monks achieved focus by staring at blank scrolls for hours. We now call this 'debugging'.", // Fake/outlandish
+    "Focus is the only superpower that doesn't require spandex.", // Outlandish
+    "Research shows that 94.7% of people who read this quote will immediately check their phone.", // Fake
+    "The Buddha achieved enlightenment through focus. He also didn't have TikTok.", // Fake/outlandish
+    "Focus: It's like meditation, but with more swearing at computers.", // Outlandish
+    "Ancient proverb: A focused mind is worth two in the notification center.", // Outlandish
+    "Scientists recently proved that rubber ducks improve focus by 127%. The ducks were unavailable for comment.", // Outlandish
+    "Focus is the art of ignoring everything except the thing you're supposed to be ignoring to focus on something else." // Outlandish
+  ];
 
   // Update selected project when currentProjectId changes
   useEffect(() => {
@@ -54,6 +83,23 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
       fetchPinnedTasks(selectedProjectId);
     }
   }, [focusMode, selectedProjectId]);
+
+  // Quote cycling effect - runs when focus mode is active
+  useEffect(() => {
+    let quoteInterval: number;
+
+    if (focusMode) {
+      quoteInterval = window.setInterval(() => {
+        setQuoteIndex((prevIndex) => (prevIndex + 1) % QUOTES.length);
+      }, 1000);
+    }
+
+    return () => {
+      if (quoteInterval) {
+        clearInterval(quoteInterval);
+      }
+    };
+  }, [focusMode, QUOTES.length]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -148,34 +194,8 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
     }
   };
 
-  const getRandomQuote = () => {
-    const quotes = [
-      "Focus is the art of knowing what to ignore.",
-      "The successful warrior is the average man with laser-like focus.", 
-      "Concentration is the secret of strength.",
-      "You can't hit a target you can't see.",
-      "What we focus on, we create more of.",
-      "Focus like a laser, not a flashlight.",
-      "Distraction is the enemy of vision.",
-      "Focus is pulling back the bow; relaxation is letting go the arrow.",
-      "I once debugged code for 3 days straight. Turns out I forgot a semicolon.", // Fake/outlandish
-      "Einstein said focus is everything, but he never had to deal with notifications.", // Fake
-      "The ancient Romans invented focus mode when they removed Twitter from their tablets.", // Fake/outlandish
-      "Studies show 87.3% of statistics about focus are made up on the spot.", // Fake
-      "Focus is like pizza - even when it's bad, it's still pretty good.", // Outlandish
-      "Confucius say: Focus without wifi is like car without gas - technically possible but really inconvenient.", // Fake/outlandish
-      "My grandmother always said: Focus is like underwear - essential, but nobody needs to see it.", // Outlandish
-      "NASA scientists recently discovered that focused developers emit 23% more caffeine particles.", // Fake
-      "In medieval times, monks achieved focus by staring at blank scrolls for hours. We now call this 'debugging'.", // Fake/outlandish
-      "Focus is the only superpower that doesn't require spandex.", // Outlandish
-      "Research shows that 94.7% of people who read this quote will immediately check their phone.", // Fake
-      "The Buddha achieved enlightenment through focus. He also didn't have TikTok.", // Fake/outlandish
-      "Focus: It's like meditation, but with more swearing at computers.", // Outlandish
-      "Ancient proverb: A focused mind is worth two in the notification center.", // Outlandish
-      "Scientists recently proved that rubber ducks improve focus by 127%. The ducks were unavailable for comment.", // Outlandish
-      "Focus is the art of ignoring everything except the thing you're supposed to be ignoring to focus on something else." // Outlandish
-    ];
-    return quotes[Math.floor(Math.random() * quotes.length)];
+  const getCurrentQuote = () => {
+    return QUOTES[quoteIndex];
   };
 
   return (
@@ -333,7 +353,7 @@ export function PomodoroTimer({ projects, currentProjectId, isMinimal = false }:
               <div className="space-y-4">
                 <div className="text-6xl">🎯</div>
                 <blockquote className="text-xl font-light text-gray-600 italic max-w-2xl mx-auto">
-                  "{getRandomQuote()}"
+                  "{getCurrentQuote()}"
                 </blockquote>
               </div>
 
