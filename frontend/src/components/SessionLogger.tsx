@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Plus, X } from 'lucide-react';
+import { Clock, Plus, X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Project } from '@/types';
 import { apiRequest } from '@/lib/api';
+import { format } from 'date-fns';
 
 interface SessionLoggerProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
   const [hours, setHours] = useState<string>('');
   const [minutes, setMinutes] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [sessionDate, setSessionDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -47,6 +49,11 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
 
     setLoading(true);
     try {
+      // Create a timestamp for the selected date (using current time for time component)
+      const now = new Date();
+      const selectedDateTime = new Date(sessionDate);
+      selectedDateTime.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      
       await apiRequest('/api/sessions', {
         method: 'POST',
         headers: {
@@ -56,6 +63,7 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
           project_id: parseInt(selectedProject),
           duration: totalSeconds,
           notes: notes.trim() || undefined,
+          started_at: selectedDateTime.toISOString(),
         }),
       });
 
@@ -64,6 +72,7 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
       setHours('');
       setMinutes('');
       setNotes('');
+      setSessionDate(format(new Date(), 'yyyy-MM-dd'));
       
       onSessionLogged?.();
       onClose();
@@ -79,6 +88,7 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
     setHours('');
     setMinutes('');
     setNotes('');
+    setSessionDate(format(new Date(), 'yyyy-MM-dd'));
     onClose();
   };
 
@@ -128,6 +138,20 @@ export function SessionLogger({ isOpen, onClose, onSessionLogged }: SessionLogge
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Date
+            </label>
+            <Input
+              type="date"
+              value={sessionDate}
+              onChange={(e) => setSessionDate(e.target.value)}
+              max={format(new Date(), 'yyyy-MM-dd')}
+              className="w-full"
+            />
           </div>
 
           <div>
