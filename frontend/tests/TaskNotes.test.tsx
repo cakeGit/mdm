@@ -7,6 +7,13 @@ import { apiRequest } from '../src/lib/api';
 jest.mock('../src/lib/api');
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
 
+// Mock the NoteContent component for tests
+jest.mock('../src/components/NoteContent', () => ({
+  NoteContent: ({ content }: { content: string }) => (
+    <div data-testid="note-content">{content}</div>
+  ),
+}));
+
 const mockNotes = [
   {
     id: 1,
@@ -336,5 +343,25 @@ describe('TaskNotes', () => {
 
     // Should show blue highlight on target
     expect(secondNote).toHaveClass('ring-2', 'ring-blue-300');
+  });
+
+  it('should render notes using NoteContent component', async () => {
+    mockApiRequest.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockNotes),
+    } as Response);
+
+    await act(async () => {
+      render(<TaskNotes taskId={1} />);
+    });
+
+    await waitFor(() => {
+      // Verify that notes are rendered (with mocked NoteContent)
+      const noteContents = screen.getAllByTestId('note-content');
+      expect(noteContents).toHaveLength(3);
+      expect(noteContents[0]).toHaveTextContent('First note');
+      expect(noteContents[1]).toHaveTextContent('Second note');
+      expect(noteContents[2]).toHaveTextContent('Third note');
+    });
   });
 });

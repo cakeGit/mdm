@@ -9,6 +9,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/components/NoteContent$': '<rootDir>/src/components/__mocks__/NoteContent.tsx',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   collectCoverageFrom: [
