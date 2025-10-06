@@ -61,7 +61,7 @@ router.get('/', authenticateToken, (req: any, res) => {
 
 // POST /api/sessions - Log a new work session
 router.post('/', authenticateToken, (req: any, res) => {
-  const { project_id, duration, notes } = req.body;
+  const { project_id, duration, notes, started_at } = req.body;
   
   if (!project_id || !duration) {
     return res.status(400).json({ error: 'Project ID and duration are required' });
@@ -79,10 +79,13 @@ router.post('/', authenticateToken, (req: any, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
     
+    // Use provided started_at or default to current timestamp
+    const sessionStartedAt = started_at || new Date().toISOString();
+    
     db.run(`
       INSERT INTO work_sessions (project_id, duration, started_at, notes)
-      VALUES (?, ?, CURRENT_TIMESTAMP, ?)
-    `, [project_id, duration, notes], function(err) {
+      VALUES (?, ?, ?, ?)
+    `, [project_id, duration, sessionStartedAt, notes], function(err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -94,7 +97,8 @@ router.post('/', authenticateToken, (req: any, res) => {
         id: this.lastID,
         project_id,
         duration,
-        notes
+        notes,
+        started_at: sessionStartedAt
       });
     });
   });
