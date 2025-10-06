@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TaskNote } from '@/types';
 import { apiRequest } from '@/lib/api';
 import { UnifiedAddForm, FieldConfig } from '@/components/UnifiedAddForm';
+import { NoteContent } from '@/components/NoteContent';
 
 interface TaskNotesProps {
   taskId: number;
@@ -333,8 +334,10 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start">
-                        <p className="text-sm text-gray-700 flex-1 pr-2">{note.content}</p>
-                        <div className="flex space-x-1">
+                        <div className="flex-1 pr-2">
+                          <NoteContent content={note.content} />
+                        </div>
+                        <div className="flex space-x-1 flex-shrink-0">
                           <Button
                             size="sm"
                             variant="ghost"
