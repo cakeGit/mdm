@@ -84,8 +84,11 @@ router.patch('/:id', authenticateToken, async (req: any, res) => {
       
       if (status === 'completed') {
         updates.push('completed_at = CURRENT_TIMESTAMP');
+        updates.push('completed_by_user_id = ?');
+        values.push(req.user.userId);
       } else {
         updates.push('completed_at = NULL');
+        updates.push('completed_by_user_id = NULL');
       }
     }
     

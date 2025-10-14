@@ -21,16 +21,17 @@ router.get('/progress', authenticateToken, (req: any, res) => {
       return res.status(500).json({ error: err.message });
     }
 
-    // Get task statistics
+    // Get task statistics (only count tasks completed by this user)
     db.get(`
       SELECT 
         COUNT(*) as total_tasks,
-        SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) as completed_tasks
+        SUM(CASE WHEN t.status = 'completed' AND t.completed_by_user_id = ? THEN 1 ELSE 0 END) as completed_tasks
       FROM tasks t
       JOIN stages s ON t.stage_id = s.id
       JOIN projects p ON s.project_id = p.id
-      WHERE p.user_id = ?
-    `, [userId], (err, taskStats) => {
+      LEFT JOIN project_shares ps ON p.id = ps.project_id AND ps.shared_with_user_id = ?
+      WHERE p.user_id = ? OR ps.shared_with_user_id = ?
+    `, [userId, userId, userId, userId], (err, taskStats) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -46,16 +47,18 @@ router.get('/progress', authenticateToken, (req: any, res) => {
           return res.status(500).json({ error: err.message });
         }
 
-        // Get this week's task completions
+        // Get this week's task completions (only by this user)
         db.get(`
           SELECT COUNT(*) as tasks_this_week
           FROM tasks t
           JOIN stages s ON t.stage_id = s.id
           JOIN projects p ON s.project_id = p.id
-          WHERE p.user_id = ? 
+          LEFT JOIN project_shares ps ON p.id = ps.project_id AND ps.shared_with_user_id = ?
+          WHERE (p.user_id = ? OR ps.shared_with_user_id = ?)
+            AND t.completed_by_user_id = ?
             AND t.completed_at IS NOT NULL 
             AND DATE(t.completed_at) >= DATE('now', '-7 days')
-        `, [userId], (err, thisWeekTasks) => {
+        `, [userId, userId, userId, userId], (err, thisWeekTasks) => {
           if (err) {
             return res.status(500).json({ error: err.message });
           }
@@ -74,17 +77,19 @@ router.get('/progress', authenticateToken, (req: any, res) => {
               return res.status(500).json({ error: err.message });
             }
 
-            // Get last week's task completions
+            // Get last week's task completions (only by this user)
             db.get(`
               SELECT COUNT(*) as tasks_last_week
               FROM tasks t
               JOIN stages s ON t.stage_id = s.id
               JOIN projects p ON s.project_id = p.id
-              WHERE p.user_id = ? 
+              LEFT JOIN project_shares ps ON p.id = ps.project_id AND ps.shared_with_user_id = ?
+              WHERE (p.user_id = ? OR ps.shared_with_user_id = ?)
+                AND t.completed_by_user_id = ?
                 AND t.completed_at IS NOT NULL 
                 AND DATE(t.completed_at) >= DATE('now', '-14 days') 
                 AND DATE(t.completed_at) < DATE('now', '-7 days')
-            `, [userId], (err, lastWeekTasks) => {
+            `, [userId, userId, userId, userId], (err, lastWeekTasks) => {
               if (err) {
                 return res.status(500).json({ error: err.message });
               }

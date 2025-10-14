@@ -288,11 +288,17 @@ router.get('/:id', authenticateToken, checkProjectAccess, (req: any, res) => {
         return res.status(500).json({ error: err.message });
       }
       
-      // Get tasks for all stages
+      // Get tasks for all stages with completed_by info
       const stageIds = stages.map(s => s.id).join(',');
-      const taskQuery = stageIds ? `SELECT * FROM tasks WHERE stage_id IN (${stageIds}) ORDER BY created_at` : 'SELECT * FROM tasks WHERE 1=0';
+      const taskQuery = stageIds ? 
+        `SELECT t.*, u.username as completed_by_username 
+         FROM tasks t 
+         LEFT JOIN users u ON t.completed_by_user_id = u.id 
+         WHERE t.stage_id IN (${stageIds}) 
+         ORDER BY t.created_at` : 
+        'SELECT * FROM tasks WHERE 1=0';
       
-      db.all(taskQuery, [], (err, tasks: Task[]) => {
+      db.all(taskQuery, [], (err, tasks: any[]) => {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
@@ -343,21 +349,47 @@ router.get('/:id', authenticateToken, checkProjectAccess, (req: any, res) => {
           ? stageProgress.reduce((sum, stage) => sum + (stage.progress * stage.weight), 0) / totalWeight
           : 0;
 
-        const result: ProjectWithDetails = {
-          ...project,
-          stages: stageProgress,
-          totalTasks,
-          completedTasks,
-          progress: weightedProgress,
-          stageProgress: stageProgress.map(stage => ({
-            id: stage.id,
-            name: stage.name,
-            progress: stage.progress,
-            weight: stage.weight
-          }))
-        };
-        
-        res.json(result);
+        // Get per-user completion stats for shared projects
+        db.all(`
+          SELECT ps.shared_with_user_id as user_id, u.username, COUNT(*) as completed_count
+          FROM project_shares ps
+          JOIN users u ON ps.shared_with_user_id = u.id
+          LEFT JOIN tasks t ON t.completed_by_user_id = ps.shared_with_user_id
+          LEFT JOIN stages s ON t.stage_id = s.id
+          WHERE ps.project_id = ? AND s.project_id = ? AND t.status = 'completed'
+          GROUP BY ps.shared_with_user_id, u.username
+          UNION
+          SELECT p.user_id, u.username, COUNT(*) as completed_count
+          FROM projects p
+          JOIN users u ON p.user_id = u.id
+          LEFT JOIN stages s ON s.project_id = p.id
+          LEFT JOIN tasks t ON t.stage_id = s.id AND t.completed_by_user_id = p.user_id
+          WHERE p.id = ? AND t.status = 'completed'
+          GROUP BY p.user_id, u.username
+        `, [projectId, projectId, projectId], (err, userStats: any[]) => {
+          if (err) {
+            console.error('Error fetching user stats:', err);
+            // Continue without user stats
+            userStats = [];
+          }
+
+          const result: ProjectWithDetails = {
+            ...project,
+            stages: stageProgress,
+            totalTasks,
+            completedTasks,
+            progress: weightedProgress,
+            stageProgress: stageProgress.map(stage => ({
+              id: stage.id,
+              name: stage.name,
+              progress: stage.progress,
+              weight: stage.weight
+            })),
+            userCompletionStats: userStats.length > 1 ? userStats : undefined
+          };
+          
+          res.json(result);
+        });
       });
     });
   });
