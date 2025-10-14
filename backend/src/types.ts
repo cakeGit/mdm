@@ -68,3 +68,23 @@ export interface StageProgress {
   progress: number;
   weight: number;
 }
+
+export interface ProjectShare {
+  id?: number;
+  project_id: number;
+  shared_with_user_id: number;
+  permission: 'read' | 'readwrite';
+  created_at?: string;
+  created_by_user_id: number;
+  shared_with_username?: string;
+  shared_with_email?: string;
+}
+
+export interface ProjectShareToken {
+  id?: number;
+  project_id: number;
+  token: string;
+  created_at?: string;
+  created_by_user_id: number;
+  expires_at?: string;
+}

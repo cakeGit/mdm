@@ -5,26 +5,74 @@ import { authenticateToken } from './auth';
 
 const router = express.Router();
 
+// Helper function to check write access to a project
+const checkProjectWriteAccess = (db: any, projectId: number, userId: number): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    // Check if user owns the project
+    db.get('SELECT user_id FROM projects WHERE id = ?', [projectId], (err: any, project: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      if (!project) {
+        resolve(false);
+        return;
+      }
+      
+      // User owns the project
+      if (project.user_id === userId) {
+        resolve(true);
+        return;
+      }
+      
+      // Check if project is shared with write access
+      db.get(
+        'SELECT permission FROM project_shares WHERE project_id = ? AND shared_with_user_id = ?',
+        [projectId, userId],
+        (err: any, share: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          resolve(share && share.permission === 'readwrite');
+        }
+      );
+    });
+  });
+};
+
 // PATCH /api/tasks/:id - Update a task
-router.patch('/:id', authenticateToken, (req: any, res) => {
+router.patch('/:id', authenticateToken, async (req: any, res) => {
   const taskId = parseInt(req.params.id);
   const { status, title, description, priority, is_pinned, notes } = req.body;
   
   const db = getDatabase();
   
-  // First verify the task belongs to a stage/project owned by the user
+  // First verify the task exists and get project_id
   db.get(`
-    SELECT t.id FROM tasks t
+    SELECT t.id, p.id as project_id FROM tasks t
     JOIN stages s ON t.stage_id = s.id
     JOIN projects p ON s.project_id = p.id
-    WHERE t.id = ? AND p.user_id = ?
-  `, [taskId, req.user.userId], (err, task) => {
+    WHERE t.id = ?
+  `, [taskId], async (err, task: any) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    // Check write access
+    try {
+      const hasAccess = await checkProjectWriteAccess(db, task.project_id, req.user.userId);
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Write access denied' });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
     
     const updates: string[] = [];

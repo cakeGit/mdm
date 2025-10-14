@@ -5,24 +5,140 @@ import { authenticateToken } from './auth';
 
 const router = express.Router();
 
-// GET /api/projects - Fetch all projects
+// Middleware to check project access (owner or shared)
+const checkProjectAccess = (req: any, res: any, next: any) => {
+  const projectId = parseInt(req.params.id);
+  const db = getDatabase();
+  
+  // Check if user owns the project
+  db.get('SELECT id, user_id FROM projects WHERE id = ?', [projectId], (err, project: any) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // User owns the project
+    if (project.user_id === req.user.userId) {
+      req.projectId = projectId;
+      req.projectPermission = 'owner';
+      return next();
+    }
+    
+    // Check if project is shared with user
+    db.get(
+      'SELECT permission FROM project_shares WHERE project_id = ? AND shared_with_user_id = ?',
+      [projectId, req.user.userId],
+      (err, share: any) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        
+        if (!share) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        req.projectId = projectId;
+        req.projectPermission = share.permission;
+        next();
+      }
+    );
+  });
+};
+
+// Middleware to check write access (owner or readwrite permission)
+const checkWriteAccess = (req: any, res: any, next: any) => {
+  const projectId = parseInt(req.params.id);
+  const db = getDatabase();
+  
+  // Check if user owns the project
+  db.get('SELECT id, user_id FROM projects WHERE id = ?', [projectId], (err, project: any) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // User owns the project
+    if (project.user_id === req.user.userId) {
+      req.projectId = projectId;
+      req.projectPermission = 'owner';
+      return next();
+    }
+    
+    // Check if project is shared with user with write access
+    db.get(
+      'SELECT permission FROM project_shares WHERE project_id = ? AND shared_with_user_id = ?',
+      [projectId, req.user.userId],
+      (err, share: any) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        
+        if (!share || share.permission !== 'readwrite') {
+          return res.status(403).json({ error: 'Write access denied' });
+        }
+        
+        req.projectId = projectId;
+        req.projectPermission = share.permission;
+        next();
+      }
+    );
+  });
+};
+
+// GET /api/projects - Fetch all projects (owned and shared)
 router.get('/', authenticateToken, (req: any, res) => {
   const db = getDatabase();
   
+  // First get owned projects
   db.all(`
     SELECT p.*, 
            COUNT(t.id) as total_tasks,
-           COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks
+           COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
+           'owner' as permission,
+           0 as is_shared
     FROM projects p
     LEFT JOIN stages s ON p.id = s.project_id
     LEFT JOIN tasks t ON s.id = t.stage_id
     WHERE p.user_id = ?
     GROUP BY p.id
-    ORDER BY p.updated_at DESC
-  `, [req.user.userId], (err, rows: any[]) => {
+  `, [req.user.userId], (err, ownedProjects: any[]) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
+    // Then get shared projects
+    db.all(`
+      SELECT p.*, 
+             COUNT(t.id) as total_tasks,
+             COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
+             ps.permission,
+             1 as is_shared
+      FROM projects p
+      JOIN project_shares ps ON p.id = ps.project_id
+      LEFT JOIN stages s ON p.id = s.project_id
+      LEFT JOIN tasks t ON s.id = t.stage_id
+      WHERE ps.shared_with_user_id = ?
+      GROUP BY p.id
+    `, [req.user.userId], (err, sharedProjects: any[]) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      
+      // Combine owned and shared projects
+      const rows = [...ownedProjects, ...sharedProjects].sort((a, b) => {
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+      
+      if (rows.length === 0) {
+        return res.json([]);
+      }
+    
     
     // Calculate stage-based progress for each project
     const projectIds = rows.map(row => row.id);
@@ -119,6 +235,7 @@ router.get('/', authenticateToken, (req: any, res) => {
       res.json(projects);
     }
     });
+    });
   });
 });
 
@@ -151,12 +268,12 @@ router.post('/', authenticateToken, (req: any, res) => {
 });
 
 // GET /api/projects/:id - Get project with nested stages/tasks
-router.get('/:id', authenticateToken, (req: any, res) => {
-  const projectId = parseInt(req.params.id);
+router.get('/:id', authenticateToken, checkProjectAccess, (req: any, res) => {
+  const projectId = req.projectId;
   const db = getDatabase();
   
   // Get project details
-  db.get('SELECT * FROM projects WHERE id = ? AND user_id = ?', [projectId, req.user.userId], (err, project: Project) => {
+  db.get('SELECT * FROM projects WHERE id = ?', [projectId], (err, project: Project) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -246,9 +363,9 @@ router.get('/:id', authenticateToken, (req: any, res) => {
   });
 });
 
-// PATCH /api/projects/:id - Update project
-router.patch('/:id', authenticateToken, (req: any, res) => {
-  const projectId = parseInt(req.params.id);
+// PATCH /api/projects/:id - Update project (requires write access)
+router.patch('/:id', authenticateToken, checkWriteAccess, (req: any, res) => {
+  const projectId = req.projectId;
   const { status, name, description, color } = req.body;
   
   const db = getDatabase();
@@ -275,9 +392,8 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
   
   updates.push('updated_at = CURRENT_TIMESTAMP');
   values.push(projectId);
-  values.push(req.user.userId);
   
-  db.run(`UPDATE projects SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values, function(err) {
+  db.run(`UPDATE projects SET ${updates.join(', ')} WHERE id = ?`, values, function(err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -290,9 +406,9 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
   });
 });
 
-// POST /api/projects/:id/stages - Add a stage to a project
-router.post('/:id/stages', authenticateToken, (req: any, res) => {
-  const projectId = parseInt(req.params.id);
+// POST /api/projects/:id/stages - Add a stage to a project (requires write access)
+router.post('/:id/stages', authenticateToken, checkWriteAccess, (req: any, res) => {
+  const projectId = req.projectId;
   const { name, description, parent_stage_id } = req.body;
   
   if (!name) {
@@ -301,8 +417,8 @@ router.post('/:id/stages', authenticateToken, (req: any, res) => {
   
   const db = getDatabase();
   
-  // First verify the project belongs to the user
-  db.get('SELECT id FROM projects WHERE id = ? AND user_id = ?', [projectId, req.user.userId], (err, project) => {
+  // Project access already verified by middleware
+  db.get('SELECT id FROM projects WHERE id = ?', [projectId], (err, project) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
