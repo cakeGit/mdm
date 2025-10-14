@@ -5,8 +5,46 @@ import { authenticateToken } from './auth';
 
 const router = express.Router();
 
+// Helper function to check write access to a project
+const checkProjectWriteAccess = (db: any, projectId: number, userId: number): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    // Check if user owns the project
+    db.get('SELECT user_id FROM projects WHERE id = ?', [projectId], (err: any, project: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      if (!project) {
+        resolve(false);
+        return;
+      }
+      
+      // User owns the project
+      if (project.user_id === userId) {
+        resolve(true);
+        return;
+      }
+      
+      // Check if project is shared with write access
+      db.get(
+        'SELECT permission FROM project_shares WHERE project_id = ? AND shared_with_user_id = ?',
+        [projectId, userId],
+        (err: any, share: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          resolve(share && share.permission === 'readwrite');
+        }
+      );
+    });
+  });
+};
+
 // POST /api/stages - Create a new stage
-router.post('/', authenticateToken, (req: any, res) => {
+router.post('/', authenticateToken, async (req: any, res) => {
   const { project_id, name, description, parent_stage_id, weight = 1 } = req.body;
   
   if (!project_id || !name) {
@@ -15,8 +53,18 @@ router.post('/', authenticateToken, (req: any, res) => {
   
   const db = getDatabase();
   
-  // First verify the project belongs to the user
-  db.get('SELECT id FROM projects WHERE id = ? AND user_id = ?', [project_id, req.user.userId], (err, project) => {
+  // Check write access
+  try {
+    const hasAccess = await checkProjectWriteAccess(db, project_id, req.user.userId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Write access denied' });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+  
+  // Verify the project exists
+  db.get('SELECT id FROM projects WHERE id = ?', [project_id], (err, project) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -51,24 +99,34 @@ router.post('/', authenticateToken, (req: any, res) => {
 });
 
 // PATCH /api/stages/:id - Update a stage
-router.patch('/:id', authenticateToken, (req: any, res) => {
+router.patch('/:id', authenticateToken, async (req: any, res) => {
   const stageId = parseInt(req.params.id);
   const { name, description, is_completed, weight, progress } = req.body;
   
   const db = getDatabase();
   
-  // First verify the stage belongs to a project owned by the user
+  // First verify the stage exists and get project_id
   db.get(`
-    SELECT s.id FROM stages s
+    SELECT s.id, s.project_id FROM stages s
     JOIN projects p ON s.project_id = p.id
-    WHERE s.id = ? AND p.user_id = ?
-  `, [stageId, req.user.userId], (err, stage) => {
+    WHERE s.id = ?
+  `, [stageId], async (err, stage: any) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     
     if (!stage) {
       return res.status(404).json({ error: 'Stage not found' });
+    }
+    
+    // Check write access
+    try {
+      const hasAccess = await checkProjectWriteAccess(db, stage.project_id, req.user.userId);
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Write access denied' });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
     
     const updates: string[] = [];
@@ -171,7 +229,7 @@ router.put('/reorder', authenticateToken, (req: any, res) => {
 });
 
 // POST /api/stages/:id/tasks - Add a task to a stage
-router.post('/:id/tasks', authenticateToken, (req: any, res) => {
+router.post('/:id/tasks', authenticateToken, async (req: any, res) => {
   const stageId = parseInt(req.params.id);
   const { title, description, priority = 2 } = req.body;
   
@@ -181,18 +239,28 @@ router.post('/:id/tasks', authenticateToken, (req: any, res) => {
   
   const db = getDatabase();
   
-  // First verify the stage belongs to a project owned by the user
+  // First verify the stage exists and get project_id
   db.get(`
-    SELECT s.id FROM stages s
+    SELECT s.id, s.project_id FROM stages s
     JOIN projects p ON s.project_id = p.id
-    WHERE s.id = ? AND p.user_id = ?
-  `, [stageId, req.user.userId], (err, stage) => {
+    WHERE s.id = ?
+  `, [stageId], async (err, stage: any) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     
     if (!stage) {
       return res.status(404).json({ error: 'Stage not found' });
+    }
+    
+    // Check write access
+    try {
+      const hasAccess = await checkProjectWriteAccess(db, stage.project_id, req.user.userId);
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Write access denied' });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
     
     db.run(`

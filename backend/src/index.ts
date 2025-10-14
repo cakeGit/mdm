@@ -4,6 +4,7 @@ import path from 'path';
 import { initDatabase } from './database';
 import authRouter from './routes/auth';
 import projectsRouter from './routes/projects';
+import sharingRouter from './routes/sharing';
 import stagesRouter from './routes/stages';
 import tasksRouter from './routes/tasks';
 import sessionsRouter from './routes/sessions';
@@ -20,6 +21,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectsRouter);
+app.use('/api/projects', sharingRouter);
+app.use('/api', sharingRouter); // For /api/shared/:token endpoint
 app.use('/api/stages', stagesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/sessions', sessionsRouter);
