@@ -7,8 +7,9 @@ A web-based application designed to manage Minecraft modding projects with integ
 - **Project Management**: Organize Minecraft mod projects with hierarchical stages and tasks
 - **Project Sharing**: Share projects with other users with read or read/write permissions
 - **Anonymous Share Links**: Generate read-only links that don't require sign-in
+- **Per-User Tracking**: Track who completed each task and maintain personal statistics
 - **Pomodoro Timer**: Integrated 25-minute work sessions to maintain focus
-- **Progress Tracking**: Visual progress bars and completion statistics
+- **Progress Tracking**: Visual progress bars and completion statistics (with per-user attribution)
 - **Session History**: Track development time and notes (separate per user)
 - **Responsive UI**: Modern interface built with React and Tailwind CSS
 

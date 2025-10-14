@@ -16,6 +16,8 @@ The ModDevManager (MDM) project sharing system allows you to collaborate with ot
 - All tasks, stages, and project structure are shared between collaborators
 - Changes made by any user with write access are immediately visible to all collaborators
 - Progress tracking reflects contributions from all team members
+- Each task tracks who completed it (visible when 2+ users work on project)
+- Per-user completion statistics show individual contributions
 
 ## User-Based Sharing
 
@@ -136,6 +138,69 @@ curl http://localhost:3001/api/shared/a1b2c3d4e5f6...
 
 Permanently revokes the anonymous share link. The token becomes invalid immediately.
 
+## Per-User Completion Tracking
+
+When multiple users collaborate on a project, the system tracks who completed each task. This ensures proper attribution and maintains accurate personal statistics.
+
+### Task Completion Attribution
+
+When a task is marked as completed, the system records:
+- `completed_by_user_id` - ID of the user who completed it
+- `completed_by_username` - Username for display purposes
+
+**Example task response:**
+```json
+{
+  "id": 5,
+  "title": "Implement feature X",
+  "status": "completed",
+  "completed_at": "2025-10-14T15:30:00.000Z",
+  "completed_by_user_id": 2,
+  "completed_by_username": "alice"
+}
+```
+
+### Per-User Statistics
+
+When you fetch project details for a shared project, the response includes `userCompletionStats` showing each collaborator's contributions:
+
+```json
+{
+  "id": 1,
+  "name": "My Project",
+  "userCompletionStats": [
+    {
+      "user_id": 1,
+      "username": "owner",
+      "completed_count": 15
+    },
+    {
+      "user_id": 2,
+      "username": "collaborator",
+      "completed_count": 8
+    }
+  ]
+}
+```
+
+**Note:** `userCompletionStats` is only included when 2 or more users have worked on the project. For solo projects, this field is omitted.
+
+### Personal Statistics
+
+The `/api/stats/progress` endpoint always shows only your own completion statistics, even for shared projects:
+
+```bash
+GET /api/stats/progress
+Authorization: Bearer YOUR_TOKEN
+```
+
+Response includes:
+- `completedTasks` - Number of tasks YOU completed (across all projects)
+- `weeklyStats.thisWeek.tasks` - Tasks YOU completed this week
+- Session time is always personal (never shared)
+
+This ensures your personal productivity metrics remain accurate and private, regardless of project sharing.
+
 ## Viewing Shared Projects
 
 ### In Project List
@@ -166,10 +231,12 @@ When you call `GET /api/projects`, the response includes both your own projects 
    - Read permission prevents any modifications
    - Write permission is required for creating/updating stages and tasks
 
-3. **Session isolation:**
+3. **Session and statistics isolation:**
    - Work sessions are always tied to the user who created them
    - Users cannot see or modify other users' sessions
    - Session statistics remain personal
+   - Completion statistics track only tasks completed by each user
+   - Personal stats don't disappear when sharing projects
 
 4. **Token security:**
    - Anonymous share tokens are 64-character random hex strings
