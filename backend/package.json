@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node start-wrapper.js",
+    "start:direct": "node dist/index.js",
     "init-db": "ts-node src/init-db.ts",
     "test": "jest",
     "test:watch": "jest --watch",

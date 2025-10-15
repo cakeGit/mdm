@@ -129,7 +129,7 @@ export function executeMigration(migration: Migration): Promise<void> {
               } else {
                 // Update schema version
                 db.run(
-                  'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP',
+                  'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE 1=1',
                   [migration.id],
                   (err) => {
                     if (err) {
