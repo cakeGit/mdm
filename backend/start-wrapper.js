@@ -10,6 +10,7 @@ const SERVER_SCRIPT = path.join(__dirname, 'dist', 'index.js');
 let errorLog = '';
 let serverFailed = false;
 let serverProcess = null;
+let errorServerStarted = false;
 
 // Read the error.html template
 const errorTemplate = fs.readFileSync(ERROR_HTML_PATH, 'utf8');
@@ -44,6 +45,16 @@ const httpServer = http.createServer((req, res) => {
   }
 });
 
+// Helper function to notify that error server is active
+function notifyErrorServer() {
+  if (errorServerStarted) {
+    return; // Already notified
+  }
+  errorServerStarted = true;
+  console.log(`\n🔴 Error page now available on port ${PORT}`);
+  console.log(`Visit http://localhost:${PORT} to see the error details`);
+}
+
 // Function to start the main server
 function startMainServer() {
   console.log('Starting server...');
@@ -54,6 +65,7 @@ function startMainServer() {
   });
 
   let serverStarted = false;
+  let wrapperServerClosed = false;
 
   serverProcess.stdout.on('data', (data) => {
     const message = data.toString();
@@ -63,9 +75,12 @@ function startMainServer() {
     if (message.includes('Server running on port') || message.includes('Database initialized successfully')) {
       serverStarted = true;
       // Close the wrapper HTTP server since the real server is running
-      httpServer.close(() => {
-        console.log('Wrapper server closed - main server is running');
-      });
+      if (!wrapperServerClosed && httpServer.listening) {
+        wrapperServerClosed = true;
+        httpServer.close(() => {
+          console.log('Wrapper server closed - main server is running');
+        });
+      }
     }
   });
 
@@ -79,24 +94,12 @@ function startMainServer() {
     if (code !== 0 && !serverStarted) {
       console.error(`\n❌ Server failed to start with exit code ${code}`);
       serverFailed = true;
-      
-      // Start the error page server if it's not already listening
-      if (!httpServer.listening) {
-        httpServer.listen(PORT, () => {
-          console.log(`\n🔴 Error page server listening on port ${PORT}`);
-          console.log(`Visit http://localhost:${PORT} to see the error details`);
-        });
-      }
+      notifyErrorServer();
     } else if (code !== 0) {
       console.error(`\n⚠️ Server crashed with exit code ${code}`);
       serverFailed = true;
       errorLog += `\n\nServer crashed with exit code ${code}`;
-      
-      // Start the error page server
-      httpServer.listen(PORT, () => {
-        console.log(`\n🔴 Error page server listening on port ${PORT}`);
-        console.log(`Visit http://localhost:${PORT} to see the error details`);
-      });
+      notifyErrorServer();
     }
   });
 
@@ -104,13 +107,7 @@ function startMainServer() {
     console.error('Failed to start server process:', err);
     errorLog += `\nFailed to start server process: ${err.message}`;
     serverFailed = true;
-    
-    if (!httpServer.listening) {
-      httpServer.listen(PORT, () => {
-        console.log(`\n🔴 Error page server listening on port ${PORT}`);
-        console.log(`Visit http://localhost:${PORT} to see the error details`);
-      });
-    }
+    notifyErrorServer();
   });
 }
 
