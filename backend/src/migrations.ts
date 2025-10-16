@@ -127,9 +127,9 @@ export function executeMigration(migration: Migration): Promise<void> {
                 db.run('ROLLBACK');
                 reject(err);
               } else {
-                // Update schema version
+                // Update schema version (there's always exactly one row)
                 db.run(
-                  'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP',
+                  'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE rowid = 1',
                   [migration.id],
                   (err) => {
                     if (err) {
