@@ -1,15 +1,71 @@
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Textarea } from '@/components/ui/textarea';
 
 interface NoteContentProps {
   content: string;
+  isEditing?: boolean;
+  onSave?: (content: string) => void;
+  onCancel?: () => void;
 }
 
 /**
  * Component to render note content with markdown support.
  * Always preserves newlines and supports GitHub Flavored Markdown.
+ * Supports inline editing when isEditing is true.
  */
-export function NoteContent({ content }: NoteContentProps) {
+export function NoteContent({ content, isEditing = false, onSave, onCancel }: NoteContentProps) {
+  const [editContent, setEditContent] = useState(content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditContent(content);
+      // Focus and select the textarea after a small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.select();
+        }
+      }, 0);
+    }
+  }, [isEditing, content]);
+
+  const handleSave = () => {
+    if (onSave && editContent.trim()) {
+      onSave(editContent.trim());
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      if (onCancel) {
+        onCancel();
+      }
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <Textarea
+        ref={textareaRef}
+        value={editContent}
+        onChange={(e) => setEditContent(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="text-sm min-h-[60px] w-full"
+        placeholder="Enter note content..."
+      />
+    );
+  }
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}

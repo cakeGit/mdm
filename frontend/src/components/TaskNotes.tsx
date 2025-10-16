@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, StickyNote, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskNote } from '@/types';
 import { apiRequest } from '@/lib/api';
 import { UnifiedAddForm, FieldConfig } from '@/components/UnifiedAddForm';
@@ -29,33 +27,19 @@ const noteFields: FieldConfig[] = [
 export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNotesProps) {
   const [notes, setNotes] = useState<TaskNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingNote, setEditingNote] = useState<TaskNote | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [draggedNoteId, setDraggedNoteId] = useState<number | null>(null);
   const [dragOverNoteId, setDragOverNoteId] = useState<number | null>(null);
   const [insertPosition, setInsertPosition] = useState<'before' | 'after' | null>(null);
   const [isExpanded, setIsExpanded] = useState(!collapsible);
   const [editingInlineNoteId, setEditingInlineNoteId] = useState<number | null>(null);
-  const modalTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     fetchNotes();
   }, [taskId]);
 
-  // When the add/edit modal opens, focus and select the textarea
-  useEffect(() => {
-    if (showAddModal || !!editingNote) {
-      // small timeout to ensure DOM is rendered
-      setTimeout(() => {
-        if (modalTextareaRef.current) {
-          modalTextareaRef.current.focus();
-          modalTextareaRef.current.select();
-        }
-      }, 0);
-    }
-  }, [showAddModal, editingNote]);
+
 
   const fetchNotes = async () => {
     try {
@@ -86,7 +70,6 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
       if (response.ok) {
         setNewNoteContent('');
         setShowAddForm(false);
-        setShowAddModal(false);
         await fetchNotes();
       }
     } catch (error) {
@@ -101,20 +84,19 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
     }
   };
 
-  const handleEditNote = async () => {
-    if (!editingNote || !newNoteContent.trim()) return;
+  const handleEditNote = async (noteId: number, content: string) => {
+    if (!content.trim()) return;
 
     try {
-      const response = await apiRequest(`/api/task-notes/${editingNote.id}`, {
+      const response = await apiRequest(`/api/task-notes/${noteId}`, {
         method: 'PUT',
         body: JSON.stringify({
-          content: newNoteContent.trim()
+          content: content.trim()
         })
       });
 
       if (response.ok) {
-        setEditingNote(null);
-        setNewNoteContent('');
+        setEditingInlineNoteId(null);
         await fetchNotes();
       }
     } catch (error) {
@@ -239,28 +221,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
     setInsertPosition(null);
   };
 
-  const openEditModal = (note: TaskNote) => {
-    setEditingNote(note);
-    setNewNoteContent(note.content);
-  };
 
-  const closeModal = () => {
-    setShowAddModal(false);
-    setEditingNote(null);
-    setNewNoteContent('');
-  };
-
-  // Submit on Enter, allow newline with Shift+Enter inside modal textarea
-  const handleModalKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (editingNote) {
-        void handleEditNote();
-      } else {
-        void handleAddNote();
-      }
-    }
-  };
 
   if (loading) {
     return <div className="animate-pulse bg-gray-100 h-20 rounded"></div>;
@@ -298,10 +259,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              setShowAddForm(true);
-              setShowAddModal(true);
-            }}
+            onClick={() => setShowAddForm(true)}
             className="text-xs"
           >
             <Plus className="w-3 h-3 mr-1" />
@@ -334,27 +292,47 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1 pr-2">
-                          <NoteContent content={note.content} />
+                        <div 
+                          className="flex-1 pr-2 cursor-pointer hover:bg-gray-50 rounded p-1 -m-1 transition-colors"
+                          onClick={() => {
+                            if (editingInlineNoteId !== note.id) {
+                              setEditingInlineNoteId(note.id!);
+                            }
+                          }}
+                        >
+                          <NoteContent 
+                            content={note.content}
+                            isEditing={editingInlineNoteId === note.id}
+                            onSave={(content) => handleEditNote(note.id!, content)}
+                            onCancel={() => setEditingInlineNoteId(null)}
+                          />
                         </div>
-                        <div className="flex space-x-1 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openEditModal(note)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteNote(note.id!)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        {editingInlineNoteId !== note.id && (
+                          <div className="flex space-x-1 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingInlineNoteId(note.id!);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteNote(note.id!);
+                              }}
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {new Date(note.created_at!).toLocaleDateString()}
@@ -387,33 +365,7 @@ export function TaskNotes({ taskId, collapsible = false, onNotesChange }: TaskNo
         </>
       )}
 
-      {/* Add/Edit Note Modal */}
-      <Dialog open={showAddModal || !!editingNote} onOpenChange={closeModal}>
-    <DialogContent className="bg-gray-50">
-          <DialogHeader>
-            <DialogTitle>{editingNote ? 'Edit Note' : 'Add Note'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Write your note here..."
-              value={newNoteContent}
-              onChange={(e) => setNewNoteContent(e.target.value)}
-              onKeyDown={handleModalKeyDown}
-              className="bg-gray-100"
-              ref={modalTextareaRef}
-              rows={4}
-            />
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={closeModal}>
-                Cancel
-              </Button>
-              <Button onClick={editingNote ? handleEditNote : handleAddNote}>
-                {editingNote ? 'Update' : 'Add'} Note
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
