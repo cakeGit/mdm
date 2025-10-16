@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditProjectModal } from '@/components/EditProjectModal';
+import { ProjectSharingModal } from '@/components/ProjectSharingModal';
 import { useProjectDetail } from '@/hooks/useProjectDetail';
 import { ProjectHeader } from './ProjectDetail/ProjectHeader';
 import { ProjectProgress } from './ProjectDetail/ProjectProgress';
@@ -29,6 +30,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   } = useProjectDetail(projectId);
 
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  const [showSharingModal, setShowSharingModal] = useState(false);
 
   if (loading) return <div className="p-8">Loading project...</div>;
   if (!project) return <div className="p-8">Project not found</div>;
@@ -43,7 +45,12 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       </div>
 
       <div className="mb-8">
-        <ProjectHeader project={project} onUpdateProject={updateProject} onEditProject={() => setShowEditProjectModal(true)} />
+        <ProjectHeader 
+          project={project} 
+          onUpdateProject={updateProject} 
+          onEditProject={() => setShowEditProjectModal(true)}
+          onShareProject={() => setShowSharingModal(true)}
+        />
         <ProjectProgress project={project} />
       </div>
 
@@ -70,6 +77,13 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         onClose={() => setShowEditProjectModal(false)}
         onProjectUpdated={fetchProject}
         project={project}
+      />
+
+      <ProjectSharingModal
+        projectId={projectId}
+        projectName={project.name}
+        isOpen={showSharingModal}
+        onClose={() => setShowSharingModal(false)}
       />
     </div>
   );

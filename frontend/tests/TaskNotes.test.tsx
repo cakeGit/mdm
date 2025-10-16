@@ -364,4 +364,68 @@ describe('TaskNotes', () => {
       expect(noteContents[2]).toHaveTextContent('Third note');
     });
   });
+
+  it('should support inline editing of notes when clicking edit button', async () => {
+    mockApiRequest
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockNotes),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          {
+            id: 1,
+            task_id: 1,
+            content: 'Updated first note',
+            created_at: '2023-01-01T00:00:00Z',
+            order_index: 0,
+          },
+          mockNotes[1],
+          mockNotes[2],
+        ]),
+      } as Response);
+
+    const { container } = render(<TaskNotes taskId={1} />);
+
+    await waitFor(() => {
+      const noteContents = screen.getAllByTestId('note-content');
+      expect(noteContents).toHaveLength(3);
+    });
+
+    // Find the Edit button for the first note - there's an Edit icon button
+    const cards = container.querySelectorAll('.rounded-lg.border');
+    expect(cards.length).toBe(3);
+    
+    // Get the first note card
+    const firstCard = cards[0];
+    
+    // Find the edit button (has lucide-pen-square icon)
+    const editButtons = firstCard.querySelectorAll('button');
+    const editButton = Array.from(editButtons).find(btn => 
+      btn.querySelector('.lucide-pen-square')
+    );
+    expect(editButton).toBeTruthy();
+    
+    await act(async () => {
+      fireEvent.click(editButton!);
+    });
+
+    // After clicking edit, the note card should have cursor-text class and not be draggable
+    await waitFor(() => {
+      const card = firstCard;
+      expect(card.classList.contains('cursor-text')).toBe(true);
+      expect(card.getAttribute('draggable')).toBe('false');
+    });
+
+    // The edit buttons should be hidden when in edit mode
+    await waitFor(() => {
+      const buttonsContainer = firstCard.querySelector('.flex.space-x-1.flex-shrink-0');
+      expect(buttonsContainer).not.toBeInTheDocument();
+    });
+  });
 });
