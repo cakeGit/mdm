@@ -47,6 +47,7 @@ export function StageCard({
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(stage.name);
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
 
   // Update tempName when stage.name changes to keep them in sync
   useEffect(() => {
@@ -210,23 +211,60 @@ export function StageCard({
       {isCurrentlyExpanded && (
         <div className="mt-4 space-y-3">
           {stage.tasks && stage.tasks.length > 0 ? (
-            <div className="space-y-2">
-              {stage.tasks.map((task) => (
-                <TaskCard 
-                  key={task.id}
-                  task={task}
-                  draggedTaskId={draggedTaskId}
-                  dragOverTaskId={dragOverTaskId}
-                  taskInsertPosition={taskInsertPosition}
-                  onDragStart={handleTaskDragStart}
-                  onDragOver={handleTaskDragOver}
-                  onDragLeave={handleTaskDragLeave}
-                  onDrop={handleTaskDrop}
-                  onDragEnd={handleTaskDragEnd}
-                  onUpdateTask={onUpdateTask}
-                />
-              ))}
-            </div>
+            <>
+              {/* Active (non-completed) tasks */}
+              <div className="space-y-2">
+                {stage.tasks.filter(task => task.status !== 'completed').map((task) => (
+                  <TaskCard 
+                    key={task.id}
+                    task={task}
+                    draggedTaskId={draggedTaskId}
+                    dragOverTaskId={dragOverTaskId}
+                    taskInsertPosition={taskInsertPosition}
+                    onDragStart={handleTaskDragStart}
+                    onDragOver={handleTaskDragOver}
+                    onDragLeave={handleTaskDragLeave}
+                    onDrop={handleTaskDrop}
+                    onDragEnd={handleTaskDragEnd}
+                    onUpdateTask={onUpdateTask}
+                  />
+                ))}
+              </div>
+
+              {/* Completed tasks section */}
+              {completedTasks > 0 && (
+                <div className="mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                    className="w-full flex items-center justify-between text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    <span>Completed tasks ({completedTasks})</span>
+                    {showCompletedTasks ? '−' : '+'}
+                  </Button>
+                  {showCompletedTasks && (
+                    <div className="mt-2 space-y-2">
+                      {stage.tasks.filter(task => task.status === 'completed').map((task) => (
+                        <TaskCard 
+                          key={task.id}
+                          task={task}
+                          draggedTaskId={draggedTaskId}
+                          dragOverTaskId={dragOverTaskId}
+                          taskInsertPosition={taskInsertPosition}
+                          onDragStart={handleTaskDragStart}
+                          onDragOver={handleTaskDragOver}
+                          onDragLeave={handleTaskDragLeave}
+                          onDrop={handleTaskDrop}
+                          onDragEnd={handleTaskDragEnd}
+                          onUpdateTask={onUpdateTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">No tasks yet</p>
           )}
