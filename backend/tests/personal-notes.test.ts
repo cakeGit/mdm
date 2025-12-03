@@ -35,8 +35,6 @@ describe('Personal Notes API', () => {
     userId = registerRes.body.user.id;
   });
 
-
-
   describe('GET /api/personal-note', () => {
     it('should return empty content when no note exists', async () => {
       const res = await request(app)

@@ -17,6 +17,15 @@ export function PersonalNote({ className = '' }: PersonalNoteProps) {
     fetchNote();
   }, []);
 
+  useEffect(() => {
+    // Cleanup timeout on unmount to prevent memory leaks
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
+
   const fetchNote = async () => {
     try {
       const response = await apiRequest('/api/personal-note');
