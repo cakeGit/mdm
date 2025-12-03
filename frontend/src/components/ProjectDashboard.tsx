@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { SegmentedProgressBar } from '@/components/SegmentedProgressBar';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { MomentumMeter } from '@/components/MomentumMeter';
+import { PersonalNote } from '@/components/PersonalNote';
 import { AutoRolloverTasks } from '@/components/AutoRolloverTasks';
 import { ReviveProjectPrompt } from '@/components/ReviveProjectPrompt';
 import { ProgressiveCelebrations } from '@/components/ProgressiveCelebrations';
@@ -123,9 +124,10 @@ export function ProjectDashboard({ projects, onProjectSelect, onNewProject, onRe
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Momentum Meter */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Top Dashboard Widgets */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MomentumMeter />
+            <PersonalNote />
             <AutoRolloverTasks onTaskComplete={onRefresh} />
             <ReviveProjectPrompt onProjectSelect={onProjectSelect} onRefresh={onRefresh} />
           </div>

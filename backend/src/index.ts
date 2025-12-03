@@ -10,6 +10,7 @@ import tasksRouter from './routes/tasks';
 import sessionsRouter from './routes/sessions';
 import statsRouter from './routes/stats';
 import taskNotesRouter from './routes/task-notes';
+import personalNotesRouter from './routes/personal-notes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,6 +29,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/task-notes', taskNotesRouter);
+app.use('/api/personal-note', personalNotesRouter);
 
 // Serve static files in production
 const frontendPath = path.join(__dirname, '../../frontend/dist');

@@ -1,0 +1,13 @@
+-- UP --
+CREATE TABLE IF NOT EXISTS personal_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    content TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    UNIQUE(user_id)
+);
+
+-- DOWN --
+DROP TABLE IF EXISTS personal_notes;
